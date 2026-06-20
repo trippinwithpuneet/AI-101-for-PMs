@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){try{var t=localStorage.getItem("ai101.theme")||"dark";document.documentElement.setAttribute("data-theme",t);}catch(e){document.documentElement.setAttribute("data-theme","dark");}})();</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chapter 2 · How LLMs Work — AI 101 for PMs</title>
+<meta name="description" content="How large language models actually work — tokens, context windows, attention, RAG, latency, embeddings, temperature, hallucination, inference, and tool calling — explained for product managers with interactive widgets.">
+<link rel="stylesheet" href="../assets/css/main.css">
+</head>
+<body class="ch2">
+
+<header class="top w2">
+  <div class="hero">
+  <div class="kicker">AI 101 for PMs · Chapter 2</div>
+  <h1>How LLMs Work</h1>
+  <p>The generation layer of the stack. Eleven concepts that turn a large language model from a black box into a system you can reason about, budget for, and debug — without the matrix math.</p>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="toc">
+    <h4>This chapter</h4>
+    <div id="toc"></div>
+    <h4>Jump to</h4>
+    <a href="#summary">Chapter summary</a>
+    <a href="#quiz">Chapter quiz</a>
+  </nav>
+
+  <main>
+    <section id="progress"></section>
+
+    <div class="intro">
+      <h2>Why this chapter matters</h2>
+      <p>Chapter 1 was about the <b>training</b> layer — how a model learns, and why a single accuracy number hides its failure modes. This chapter is about the <b>generation</b> layer: what happens every time a deployed LLM answers a user.</p>
+      <p>The same discipline carries over, one layer up. A model's fluent, confident sentence is itself a number you shouldn't trust on its own — you have to know what it was measured against: was the answer <em>grounded</em> in retrieved evidence, or recalled from memory? Did the critical fact sit where the model actually reads, or buried in the middle? Is that latency tied to the prompt, or to every token it has to generate? By the end you'll be able to ask the question that exposes each failure before it ships.</p>
+      <p class="swap-hint">Each concept pairs a plain-English explanation with a live widget. Play with every one — the interaction is where the idea sticks.</p>
+    </div>
+
+    <div id="cards"></div>
+
+    <section id="summary" class="intro">
+      <h2>Chapter summary — the throughline</h2>
+      <p>The spine of this whole course: <b>never trust a single number until you know what it was measured against — at every layer of the stack.</b> Chapter 1 applied it to training. Here it applies to <b>generation</b>, and the same trap reappears in three disguises:</p>
+      <ul>
+        <li><b>Fluency is not truth.</b> A confident sentence is a plausibility score, not a correctness score. When a RAG feature is wrong, the first suspect is <em>retrieval quality, not model fluency</em> — most RAG failures are retrieval failures. The number to interrogate is "did we fetch the right chunks?", not "is the LLM smart enough?".</li>
+        <li><b>A big context window is a ceiling, not a guarantee.</b> "200K tokens" tells you what the model <em>can</em> see, not how well it uses the middle of it. Lost-in-the-middle means the disciplined move is to retrieve the few relevant pieces, not dump everything in and trust the headline window size.</li>
+        <li><b>Latency is tied to output tokens, not prompt size.</b> Generation is sequential — every token is a full forward pass that can't start until the last one exists. So the lever is shorter outputs (and streaming for <em>perceived</em> speed), not a faster prompt. Inference cost, not training cost, is the recurring bill that dominates at scale.</li>
+      </ul>
+      <p>Tokenisation, attention, embeddings, temperature, hallucination, and tool calling are all just the mechanics that explain <em>why</em> these three hold. Learn the mechanics so you can name the lever — grounding, retrieval, temperature, tools, output length — instead of saying "the model lied."</p>
+    </section>
+
+    <section id="quiz" class="quiz">
+      <h2>Chapter 2 quiz</h2>
+      <p>Eleven questions, one per concept. Score 80% or higher to mark this chapter complete. Miss any and you'll get deeplinks back to the exact cards to review.</p>
+      <div id="quiz-mount"></div>
+    </section>
+
+    <div class="btn-row">
+      <a class="btn alt" href="01-ml-foundations.html">← Prev: Chapter 1</a>
+      <a class="btn" href="03-evals-safety-cost.html">Next: Chapter 3 →</a>
+      <a class="btn alt" href="../revise.html">Revise these concepts</a>
+    </div>
+  </main>
+</div>
+
+<footer>
+  AI 101 for PMs · An offline, interactive field guide. Progress is stored only in your browser.
+</footer>
+
+<script src="../assets/js/concepts.js"></script>
+<script src="../assets/js/progress.js"></script>
+<script src="../assets/js/helpers.js"></script>
+
+<script>
+/* ---------- build: nav, progress, cards, TOC, quiz ---------- */
+Nav.mount({ here:'ch2', base:'../' });
+Progress.renderBar(document.getElementById('progress'));
+var __list = buildChapter(2, document.getElementById('cards'));
+(function(){
+  var toc = document.getElementById('toc');
+  __list.forEach(function(c){
+    var a = el('a', null, c.order + '. ' + c.title.replace(/&amp;/g,'&'));
+    a.href = '#' + c.id;
+    toc.appendChild(a);
+  });
+  // highlight the TOC link for the card currently in view
+  if('IntersectionObserver' in window){
+    var links = {};
+    [].forEach.call(toc.querySelectorAll('a'), function(a){ links[a.getAttribute('href').slice(1)] = a; });
+    var obs = new IntersectionObserver(function(es){
+      es.forEach(function(e){
+        if(e.isIntersecting){
+          [].forEach.call(toc.querySelectorAll('a'), function(a){ a.classList.remove('active'); });
+          var lk = links[e.target.id]; if(lk) lk.classList.add('active');
+        }
+      });
+    }, { rootMargin:'-20% 0px -70% 0px' });
+    __list.forEach(function(c){ var n = document.getElementById(c.id); if(n) obs.observe(n); });
+  }
+})();
+renderQuiz(document.getElementById('quiz-mount'), chapterQuestions(2), { chapter:2, reviewBase:'../', passPct:80 });
+</script>
+
+<script>
+/* ============================================================
+   Chapter 2 widgets. Each IIFE finds its #<widget>-mount div
+   (created by buildChapter) and draws into it. Ported from the
+   reference field-notes; the MAIN series uses C.accent so it
+   themes green for this chapter, while semantic colours (orange
+   #e8800c warn/output, pink #d6326b / red danger) are kept.
+   ============================================================ */
+
+/* ---------- shared toy tokenizer (illustrative, not a real BPE) ---------- */
+var KNOWN={'strawberry':['strawberry'],'mississippi':['Miss','iss','ipp','i'],
+  'zepto':['Z','ept','o'],'bangalore':['B','ang','alore'],'tomato':['tom','ato']};
+function tokenize(text){
+  var toks=[]; var words=text.match(/\s*[^\s]+|\s+/g)||[];
+  words.forEach(function(chunk){
+    var lead=chunk.match(/^\s*/)[0]; var word=chunk.slice(lead.length);
+    if(word===''){return;}
+    var key=word.toLowerCase().replace(/[^a-z]/g,'');
+    if(KNOWN[key]&&word.length===key.length){ KNOWN[key].forEach(function(t,i){toks.push((i===0?lead:'')+t);}); return; }
+    // non-ASCII (e.g. Devanagari): ~1 token per character — inflates count
+    if(/[^\x00-\x7f]/.test(word)){ for(var i=0;i<word.length;i++){toks.push((i===0?lead:'')+word[i]);} return; }
+    if(/^\d+$/.test(word)){ toks.push(lead+word); return; }
+    if(word.length<=4){ toks.push(lead+word); return; }
+    // split longer words into ~4-char pieces
+    var i=0,first=true; while(i<word.length){var n=(word.length-i)>=8?4:Math.max(3,Math.ceil((word.length-i)/2));
+      toks.push((first?lead:'')+word.substr(i,n)); i+=n; first=false;}
+  });
+  return toks;
+}
+function renderToks(mount,toks){
+  mount.innerHTML=''; var pal=['#f3eefe','#e3f6ef','#fdf1e3','#fdeaf1','#e8f0fe'];
+  var cols=['#a78bfa','#0f9d6f','#e8800c','#d6326b','#2563eb'];
+  toks.forEach(function(t,i){var s=el('span','tok',t.replace(/ /g,'·')); s.style.background=pal[i%5]; s.style.borderColor=cols[i%5]; s.style.color=cols[i%5]; mount.appendChild(s);});
+}
+
+/* ---------- tok: tokenisation ---------- */
+(function(){
+  var m=document.getElementById('tok-mount'); if(!m)return;
+  var presets={'Zepto tagline':'Groceries delivered in 10 minutes','English sentence':'The customer wants a refund today',
+    'Hindi (Devanagari)':'१० मिनट में किराना डिलीवरी','Code':'const price = qty * rate;','One word: strawberry':'strawberry'};
+  var bar=el('div','tabs',''); m.appendChild(bar);
+  var ta=document.createElement('textarea'); ta.style.cssText='width:100%;min-height:54px;border:1px solid var(--line);border-radius:8px;padding:10px;font-size:15px;font-family:inherit'; ta.value=presets['Zepto tagline']; m.appendChild(ta);
+  var outBox=el('div',null,''); outBox.style.cssText='margin:12px 0;min-height:38px'; m.appendChild(outBox);
+  var stat=el('div','readout',''); m.appendChild(stat);
+  Object.keys(presets).forEach(function(k){var b=el('div','tab',k); b.onclick=function(){ta.value=presets[k];run();}; bar.appendChild(b);});
+  function run(){var t=tokenize(ta.value); renderToks(outBox,t);
+    var chars=ta.value.length; var ratio=chars?(chars/t.length).toFixed(1):0;
+    stat.innerHTML=t.length+' tokens · '+chars+' characters · ~'+ratio+' chars/token'+(/[^\x00-\x7f]/.test(ta.value)?' &nbsp;<b style="color:#d6326b">← non-English fragments hard → 2–3× the tokens</b>':'');}
+  ta.oninput=run; run();
+})();
+
+/* ---------- count: letter counting ---------- */
+(function(){
+  var m=document.getElementById('count-mount'); if(!m)return;
+  var bar=el('div','tabs',''); ['Mississippi','strawberry','Zepto','Bangalore','tomato'].forEach(function(wd){
+    var b=el('div','tab',wd); b.onclick=function(){inp.value=wd;run();}; bar.appendChild(b);}); m.appendChild(bar);
+  var inp=document.createElement('input'); inp.type='text'; inp.value='strawberry';
+  inp.style.cssText='width:100%;border:1px solid var(--line);border-radius:8px;padding:10px;font-size:16px'; m.appendChild(inp);
+  var outBox=el('div',null,''); outBox.style.cssText='margin:12px 0'; m.appendChild(outBox);
+  var ind=el('div',null,''); ind.style.cssText='padding:12px 14px;border-radius:10px;font-weight:700'; m.appendChild(ind);
+  function run(){var t=tokenize(inp.value); renderToks(outBox,t);
+    if(t.length<=1){ind.style.background='#fdeaf1';ind.style.color='#d6326b';
+      ind.innerHTML='🔴 One token — the model sees <b>“'+inp.value+'”</b> as a single chunk and <b>cannot see the letters</b> to count them.';}
+    else{ind.style.background='#e3f6ef';ind.style.color='#0f9d6f';
+      ind.innerHTML='🟢 '+t.length+' tokens — there are seams between chunks, so the model can reason about parts. (Still: real counting needs a tool.)';}
+  }
+  inp.oninput=run; run();
+})();
+
+/* ---------- ctxwin: context window & lost-in-the-middle ---------- */
+(function(){
+  var m=document.getElementById('ctxwin-mount'); if(!m)return; var pos=50, len=2;
+  var d=cv(m,560,260);
+  slider(m,'Fact position (%)',0,100,pos,1,function(v){pos=v;draw();});
+  slider(m,'Document length',1,10,len,1,function(v){len=v;draw();});
+  var info=el('div','ctrl'); var t=el('span','readout',''); info.appendChild(t); m.appendChild(info);
+  function acc(p){var depth=0.15+0.55*(len/10); return Math.max(0.25,0.97-depth*Math.exp(-Math.pow((p-50)/24,2)));}
+  function X(p){return 50+p*4.8;} function Y(a){return 220-(a-0.2)*240;}
+  function draw(){
+    var x=d.x,w=d.w,h=d.h; x.clearRect(0,0,w,h);
+    x.strokeStyle=C.grid; for(var g=0;g<=4;g++){var yy=20+g*50;x.beginPath();x.moveTo(50,yy);x.lineTo(530,yy);x.stroke();}
+    x.fillStyle=C.muted;x.font='11px sans-serif';x.fillText('recall',6,120);x.fillText('start',46,238);x.fillText('middle',270,238);x.fillText('end',505,238);
+    x.strokeStyle=C.accent; x.lineWidth=3; x.beginPath();
+    for(var p=0;p<=100;p++){var px=X(p),py=Y(acc(p)); if(p===0)x.moveTo(px,py);else x.lineTo(px,py);} x.stroke();
+    var a=acc(pos); x.fillStyle='#d6326b'; x.beginPath(); x.arc(X(pos),Y(a),7,0,7); x.fill();
+    x.strokeStyle='rgba(214,50,107,.4)';x.setLineDash([4,3]);x.beginPath();x.moveTo(X(pos),Y(a));x.lineTo(X(pos),232);x.stroke();x.setLineDash([]);
+    var kt=['1K','4K','16K','32K','64K','100K','150K','200K','300K','500K'][len-1];
+    t.innerHTML='Doc ≈ '+kt+' tokens · fact at '+pos+'% → recall ≈ <b style="color:'+(a>0.7?C.accent:'#d6326b')+'">'+(a*100).toFixed(0)+'%</b>'+(pos>30&&pos<70?' — buried in the middle.':' — near an edge, safe.');
+  }
+  draw();
+})();
+
+/* ---------- attn: transformers & attention ---------- */
+(function(){
+  var m=document.getElementById('attn-mount'); if(!m)return;
+  var words=['The','customer','cancelled','the','order','because','it','was','late'];
+  // attention[i] = how much word i attends to each other word (hardcoded illustrative)
+  var A={6:{4:1.0,1:0.5,2:0.35,8:0.3},2:{4:0.9,1:0.6},8:{2:0.7,4:0.5,6:0.4},4:{2:0.6,1:0.5}};
+  // pull the accent's RGB so highlight alpha themes per chapter
+  var probe=el('span',null,''); probe.style.color=C.accent; document.body.appendChild(probe);
+  var rgb=(getComputedStyle(probe).color.match(/\d+/g)||[52,211,153]).slice(0,3).join(','); document.body.removeChild(probe);
+  var wrap=el('div',null,''); wrap.style.cssText='font-size:20px;line-height:2.2;margin:6px 0 12px'; m.appendChild(wrap);
+  var note=el('div','readout','Click a word to see what it attends to. Try “it”.'); m.appendChild(note);
+  var spans=[];
+  words.forEach(function(wd,i){var s=el('span',null,wd); s.style.cssText='padding:3px 8px;margin:2px;border-radius:7px;cursor:pointer;transition:.15s;border:1px solid transparent';
+    s.onclick=function(){show(i);}; spans.push(s); wrap.appendChild(s);});
+  function show(i){var map=A[i]||{};
+    spans.forEach(function(s,j){ if(j===i){s.style.background=C.accent;s.style.color='#0f0d17';s.style.borderColor=C.accent;}
+      else{var wt=map[j]||0; s.style.background='rgba('+rgb+','+(wt*0.75)+')'; s.style.color=wt>0.5?'#0f0d17':C.ink; s.style.borderColor='transparent';}});
+    if(i===6)note.innerHTML='“it” attends most strongly to <b>“order”</b> — a direct link across 5 words, no decay. That cross-distance connection is the whole transformer breakthrough.';
+    else if(Object.keys(map).length)note.innerHTML='“'+words[i]+'” reaches across the sentence to the words that give it meaning.';
+    else note.innerHTML='“'+words[i]+'” is a function word — it doesn’t need to pull much from elsewhere. Try “it”, “cancelled”, or “late”.';
+  }
+  show(6);
+})();
+
+/* ---------- rag: retrieval-augmented generation ---------- */
+(function(){
+  var m=document.getElementById('rag-mount'); if(!m)return;
+  var KB=[
+    {t:'Return Policy — Perishables',b:'Spoiled or expired perishable items qualify for a full refund within 24 hours of delivery.'},
+    {t:'Delivery SLA',b:'Orders are promised within 10 minutes; late deliveries may receive credits.'},
+    {t:'Membership Benefits',b:'Zepto Pass members get free delivery and exclusive discounts.'},
+    {t:'Cancellation Rules',b:'Orders can be cancelled before dispatch; post-dispatch cancellations are not refunded.'},
+    {t:'Packaging Standards',b:'Fragile and frozen items are packed with insulation and tamper seals.'}
+  ];
+  var Q={
+    'My milk arrived spoiled, I want my money back':[0,3,1,4,2],
+    'Why was my order late?':[1,3,2,4,0],
+    'How do I cancel an order?':[3,1,2,0,4],
+    'Do members pay for delivery?':[2,1,0,3,4]
+  };
+  var bar=el('div','tabs',''); m.appendChild(bar);
+  var rank=el('div',null,''); rank.style.margin='8px 0'; m.appendChild(rank);
+  var recv=el('div',null,''); recv.style.cssText='margin-top:12px;background:#1a1726;color:#fff;border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.5'; m.appendChild(recv);
+  Object.keys(Q).forEach(function(q,qi){var b=el('div','tab'+(qi===0?' active':''),q.length>26?q.slice(0,24)+'…':q);
+    b.onclick=function(){[].forEach.call(bar.children,function(x){x.classList.remove('active')});b.classList.add('active');run(q);}; bar.appendChild(b);});
+  function run(q){var order=Q[q]; rank.innerHTML='';
+    order.forEach(function(idx,r){var score=(0.92-r*0.19).toFixed(2); var top=r<2;
+      var row=el('div',null,''); row.style.cssText='display:flex;align-items:center;gap:10px;padding:7px 10px;margin:5px 0;border-radius:8px;border:1px solid var(--line);'+(top?'background:var(--accent-soft)':'background:var(--panel);opacity:.6');
+      row.innerHTML='<span class="readout" style="background:'+(top?C.accent:C.grid)+';color:'+(top?'#0f0d17':C.muted)+'">'+score+'</span> <b>'+KB[idx].t+'</b>'+(top?' &nbsp;<span style="color:'+C.accent+';font-size:12px;font-weight:700">✓ retrieved</span>':'');
+      rank.appendChild(row);});
+    var top2=order.slice(0,2).map(function(i){return KB[i];});
+    recv.innerHTML='<b style="color:'+C.accent+'">What the model actually receives:</b><br>“Answer using only this context:<br>• '+top2[0].b+'<br>• '+top2[1].b+'<br><br>Question: '+q+'”<br><br><span style="color:#fca5a5">Everything else in the knowledge base does not exist for this answer.</span>';
+  }
+  run(Object.keys(Q)[0]);
+})();
+
+/* ---------- latency: output latency ---------- */
+(function(){
+  var m=document.getElementById('latency-mount'); if(!m)return; var raf=null;
+  var row=el('div','ctrl'); var bs=el('button','btn','▶ Short reply (12 tokens)'); var bl=el('button','btn','▶ Long reply (90 tokens)');
+  row.appendChild(bs); row.appendChild(bl); m.appendChild(row);
+  var barWrap=el('div',null,''); barWrap.style.cssText='height:20px;background:#2d2840;border-radius:6px;overflow:hidden;border:1px solid var(--line);margin:8px 0';
+  var fill=el('div',null,''); fill.style.cssText='height:100%;width:0;background:'+C.accent; barWrap.appendChild(fill); m.appendChild(barWrap);
+  var stat=el('div','readout','Rate stays ~flat (≈40 tok/s) — only the count changes.'); m.appendChild(stat);
+  var d=cv(m,560,210); var info=el('div','hint','Chart: input is processed in one fast parallel pass (flat); output is generated one token at a time (steep).'); m.appendChild(info);
+  function gen(N){ if(raf)cancelAnimationFrame(raf); var i=0,start=null,rate=40;
+    function step(ts){ if(!start)start=ts; var elapsed=(ts-start)/1000; i=Math.min(N,Math.floor(elapsed*rate));
+      fill.style.width=(i/N*100)+'%'; stat.innerHTML=i+'/'+N+' tokens · '+(elapsed).toFixed(2)+'s · ≈'+(i/Math.max(0.01,elapsed)).toFixed(0)+' tok/s';
+      if(i<N)raf=requestAnimationFrame(step); else stat.innerHTML='Done: '+N+' tokens in '+(N/rate).toFixed(2)+'s · ≈40 tok/s. <b>Total time = rate × count.</b>'; }
+    raf=requestAnimationFrame(step);
+  }
+  bs.onclick=function(){gen(12);}; bl.onclick=function(){gen(90);};
+  // static chart
+  var x=d.x,w=d.w,h=d.h; x.clearRect(0,0,w,h);
+  x.strokeStyle=C.grid; for(var g=0;g<=4;g++){var yy=20+g*42;x.beginPath();x.moveTo(50,yy);x.lineTo(530,yy);x.stroke();}
+  x.fillStyle=C.muted;x.font='11px sans-serif';x.fillText('time',8,110);x.fillText('length →',470,200);
+  x.strokeStyle=C.accent;x.lineWidth=3;x.beginPath();x.moveTo(50,180);x.lineTo(530,165);x.stroke();
+  x.strokeStyle='#e8800c';x.lineWidth=3;x.beginPath();x.moveTo(50,182);x.lineTo(530,30);x.stroke();
+  x.fillStyle=C.accent;x.fillText('— input (prompt): parallel, ~flat',60,150);
+  x.fillStyle='#e8800c';x.fillText('— output: sequential, steep & linear',60,48);
+})();
+
+/* ---------- embed: embeddings ---------- */
+(function(){
+  var m=document.getElementById('embed-mount'); if(!m)return;
+  var probe=el('span',null,''); probe.style.color=C.accent; document.body.appendChild(probe);
+  var rgb=(getComputedStyle(probe).color.match(/\d+/g)||[52,211,153]).slice(0,3).join(','); document.body.removeChild(probe);
+  var items=[
+    {n:'milk',x:0.30,y:0.62},{n:'sugar',x:0.38,y:0.70},{n:'ginger',x:0.26,y:0.74},{n:'tea leaves',x:0.34,y:0.80},
+    {n:'banana',x:0.80,y:0.25},{n:'apple',x:0.86,y:0.32},
+    {n:'reorder',x:0.66,y:0.78},{n:'repurchase',x:0.70,y:0.83},
+    {n:'Return Policy (perishables)',x:0.18,y:0.30},{n:'refund',x:0.24,y:0.24}
+  ];
+  var queries={
+    '“something to make tea”':{x:0.30,y:0.74},
+    '“milk went bad, want money back”':{x:0.21,y:0.27},
+    '“buy this again”':{x:0.68,y:0.80},
+    '“a sweet fruit”':{x:0.83,y:0.28}
+  };
+  var bar=el('div','tabs',''); m.appendChild(bar);
+  var d=cv(m,560,300); var t=el('div','readout',''); t.style.marginTop='8px'; m.appendChild(t);
+  var cur=Object.keys(queries)[0];
+  Object.keys(queries).forEach(function(q,i){var b=el('div','tab'+(i===0?' active':''),q);
+    b.onclick=function(){[].forEach.call(bar.children,function(x){x.classList.remove('active')});b.classList.add('active');cur=q;draw();}; bar.appendChild(b);});
+  function P(v){return 40+v*480;} function Q(v){return 280-v*250;}
+  function draw(){
+    var x=d.x,w=d.w,h=d.h; x.clearRect(0,0,w,h);
+    var q=queries[cur]; var dist=items.map(function(it,i){return {i:i,d:Math.hypot(it.x-q.x,it.y-q.y)};}).sort(function(a,b){return a.d-b.d;});
+    var near={}; dist.slice(0,4).forEach(function(o){near[o.i]=true;});
+    // lines to nearest
+    dist.slice(0,4).forEach(function(o){var it=items[o.i]; x.strokeStyle='rgba('+rgb+',.45)';x.lineWidth=2;x.beginPath();x.moveTo(P(q.x),Q(q.y));x.lineTo(P(it.x),Q(it.y));x.stroke();});
+    items.forEach(function(it,i){var hot=near[i]; x.fillStyle=hot?C.accent:'#bcb6cc';
+      x.beginPath();x.arc(P(it.x),Q(it.y),hot?7:5,0,7);x.fill();
+      x.fillStyle=hot?C.accent:'#9b93b5';x.font=(hot?'bold ':'')+'12px sans-serif';x.fillText(it.n,P(it.x)+9,Q(it.y)+4);});
+    x.fillStyle='#d6326b';x.beginPath();x.arc(P(q.x),Q(q.y),8,0,7);x.fill();
+    x.fillStyle='#d6326b';x.font='bold 12px sans-serif';x.fillText('query',P(q.x)+11,Q(q.y)-8);
+    var names=dist.slice(0,4).map(function(o){return items[o.i].n;});
+    t.innerHTML='Nearest by <b>meaning</b>: '+names.join(', ')+'. Notice the match ignores spelling — it’s proximity in meaning-space.';
+  }
+  draw();
+})();
+
+/* ---------- temp: temperature & sampling ---------- */
+(function(){
+  var m=document.getElementById('temp-mount'); if(!m)return;
+  var toks=['delivered','late','cancelled','packed','coming','refunded','here'];
+  var logits=[3.0,1.8,1.0,0.6,0.3,-0.2,-0.6]; var T=0.8;
+  var d=cv(m,560,230);
+  slider(m,'Temperature',0.1,2,T,0.05,function(v){T=v;draw();});
+  var row=el('div','ctrl'); var bs=el('button','btn','\u{1F3B2} Sample 10x'); var out=el('span','readout','press Sample 10x');
+  row.appendChild(bs); row.appendChild(out); m.appendChild(row);
+  var t=el('div','hint',''); m.appendChild(t);
+  function probs(){var sc=logits.map(function(l){return l/T;}); var mx=Math.max.apply(null,sc);
+    var ex=sc.map(function(v){return Math.exp(v-mx);}); var sum=ex.reduce(function(a,b){return a+b;},0);
+    return ex.map(function(e){return e/sum;});}
+  function draw(){
+    var x=d.x,w=d.w,h=d.h; x.clearRect(0,0,w,h); var p=probs();
+    var bw=58, gap=13, x0=18, base=175;
+    p.forEach(function(pr,i){var bh=pr*140; var X=x0+i*(bw+gap);
+      x.globalAlpha=0.35+0.65*pr; x.fillStyle=i===0?C.accent:'#a78bfa'; x.fillRect(X,base-bh,bw,bh); x.globalAlpha=1;
+      x.fillStyle=C.ink; x.font='11px sans-serif'; x.textAlign='center'; x.fillText((pr*100).toFixed(0)+'%',X+bw/2,base-bh-6);
+      x.fillStyle=C.muted; x.font='10px sans-serif'; x.fillText(toks[i],X+bw/2,base+15); x.textAlign='left';});
+    t.innerHTML = T<0.3?'Near-greedy: it will almost always say <b>"'+toks[0]+'"</b> — consistent, repetitive.':(T>1.2?'High temperature: tail tokens are now live — <b>creative but risky</b>.':'Balanced: usually the top token, with some variety.');
+  }
+  bs.onclick=function(){var p=probs(),counts={}; toks.forEach(function(tk){counts[tk]=0;});
+    for(var n=0;n<10;n++){var r=Math.random(),acc=0,pick=toks[toks.length-1];
+      for(var i=0;i<p.length;i++){acc+=p[i]; if(r<=acc){pick=toks[i];break;}} counts[pick]++;}
+    out.textContent=toks.filter(function(tk){return counts[tk]>0;}).map(function(tk){return tk+' x'+counts[tk];}).join('   ');};
+  draw();
+})();
+
+/* ---------- halluc: hallucination risk ---------- */
+(function(){
+  var m=document.getElementById('halluc-mount'); if(!m)return;
+  var obscurity=70, temp=0.8, rag=false, tools=false, idk=false;
+  var d=cv(m,560,150);
+  slider(m,'Question obscurity',0,100,obscurity,1,function(v){obscurity=v;draw();});
+  slider(m,'Temperature',0,2,temp,0.05,function(v){temp=v;draw();});
+  function toggle(label,cb){var rw=el('div','ctrl'); var b=el('button','btn alt',label+': OFF'); var on=false;
+    b.onclick=function(){on=!on; b.textContent=label+': '+(on?'ON':'OFF'); b.style.background=on?C.accent:''; b.style.color=on?'#0f0d17':''; cb(on);};
+    rw.appendChild(b); m.appendChild(rw);}
+  toggle('RAG grounding',function(v){rag=v;draw();});
+  toggle('Tool use (calc / search)',function(v){tools=v;draw();});
+  toggle('Allowed to say I-dont-know',function(v){idk=v;draw();});
+  var t=el('div','readout',''); t.style.marginTop='10px'; m.appendChild(t);
+  function risk(){var r=obscurity*0.6 + (temp/2*100)*0.25; if(rag)r-=35; if(tools)r-=15; if(idk)r-=20; return Math.max(2,Math.min(100,r));}
+  function draw(){
+    var x=d.x,w=d.w,h=d.h; x.clearRect(0,0,w,h); var r=risk();
+    var bx=20,by=64,bw=520,bh=26; x.fillStyle=C.grid; x.fillRect(bx,by,bw,bh);
+    var col=r>66?'#f472b6':(r>33?'#fbbf24':C.accent); x.fillStyle=col; x.fillRect(bx,by,bw*r/100,bh);
+    x.fillStyle=C.ink; x.font='bold 14px sans-serif'; x.fillText('Hallucination risk: '+r.toFixed(0)+'%  ('+(r>66?'high':(r>33?'moderate':'low'))+')',bx,by-14);
+    x.fillStyle=C.muted; x.font='11px sans-serif'; x.fillText('low',bx,by+bh+16); x.textAlign='right'; x.fillText('high',bx+bw,by+bh+16); x.textAlign='left';
+    var tips=[]; if(!rag)tips.push('add RAG grounding'); if(!tools&&obscurity>40)tips.push('let it use tools'); if(temp>0.8)tips.push('lower temperature'); if(!idk)tips.push('allow "I dont know"');
+    t.innerHTML = r>66?'<b style="color:#f472b6">High risk</b> — fluent, confident, likely wrong. Fix: '+(tips.join(', ')||'-')+'.':(r>33?'<b style="color:#fbbf24">Moderate</b> — '+(tips.length?'try: '+tips.join(', '):'reasonable')+'.':'<b style="color:'+C.accent+'">Low</b> — grounded and constrained. The shippable zone for factual features.');
+  }
+  draw();
+})();
+
+/* ---------- infer: inference vs training ---------- */
+(function(){
+  var m=document.getElementById('infer-mount'); if(!m)return;
+  var row=el('div','ctrl');
+  var bt=el('button','btn alt','▶ Run training (once)');
+  var bi=el('button','btn','▶ Run inference (click many times)');
+  row.appendChild(bt); row.appendChild(bi); m.appendChild(row);
+
+  var tLabel=el('div',null,'Training'); tLabel.style.cssText='font-size:12px;font-weight:700;color:var(--muted);margin-top:10px';
+  var tWrap=el('div',null,''); tWrap.style.cssText='height:22px;background:#2d2840;border-radius:6px;overflow:hidden;border:1px solid var(--line);margin:4px 0 14px';
+  var tFill=el('div',null,''); tFill.style.cssText='height:100%;width:0;background:#a78bfa;transition:width .1s'; tWrap.appendChild(tFill);
+  m.appendChild(tLabel); m.appendChild(tWrap);
+
+  var iLabel=el('div',null,'Inference (fires once per click — each user message)'); iLabel.style.cssText='font-size:12px;font-weight:700;color:var(--muted)';
+  var iWrap=el('div',null,''); iWrap.style.cssText='height:22px;background:#2d2840;border-radius:6px;overflow:hidden;border:1px solid var(--line);margin:4px 0 8px';
+  var iFill=el('div',null,''); iFill.style.cssText='height:100%;width:0;background:'+C.accent+';transition:width .25s'; iWrap.appendChild(iFill);
+  m.appendChild(iLabel); m.appendChild(iWrap);
+
+  var stat=el('div','readout','Training: 0 runs · Inference: 0 calls'); stat.style.marginTop='6px'; m.appendChild(stat);
+  var trainCount=0, infCount=0, trainBusy=false;
+
+  bt.onclick=function(){
+    if(trainBusy)return; trainBusy=true; trainCount++;
+    var p=0; tFill.style.width='0%';
+    var iv=setInterval(function(){
+      p+=4; tFill.style.width=Math.min(100,p)+'%';
+      if(p>=100){clearInterval(iv); trainBusy=false; render();}
+    },60);
+    render();
+  };
+  bi.onclick=function(){
+    infCount++; iFill.style.width='100%';
+    setTimeout(function(){iFill.style.width='0%';},220);
+    render();
+  };
+  function render(){
+    stat.innerHTML='Training: <b>'+trainCount+'</b> run'+(trainCount===1?'':'s')+' (slow, rare, expensive) · Inference: <b>'+infCount+'</b> call'+(infCount===1?'':'s')+' (fast, constant, the real bill at scale)';
+  }
+  render();
+})();
+
+/* ---------- tools: tool calling loop ---------- */
+(function(){
+  var m=document.getElementById('tools-mount'); if(!m)return;
+  var steps=[
+    {who:'USER', text:'"What\'s 847 × 293?"', col:'var(--muted)'},
+    {who:'MODEL', text:'Decides: "I need to call the calculator tool with 847 × 293" — it does not compute this itself.', col:'#a78bfa'},
+    {who:'SYSTEM', text:'Executes calculator(847, 293) → returns 248,171. This step is real code, not the LLM.', col:C.accent},
+    {who:'MODEL', text:'Receives the real result and generates the final answer: "847 × 293 = 248,171"', col:'#a78bfa'}
+  ];
+  var list=el('div',null,''); m.appendChild(list);
+  var row=el('div','ctrl');
+  var bn=el('button','btn','Next step →');
+  var br=el('button','btn alt','Reset');
+  row.appendChild(bn); row.appendChild(br); m.appendChild(row);
+  var i=0;
+  function render(){
+    list.innerHTML='';
+    for(var k=0;k<i;k++){
+      var s=steps[k];
+      var line=el('div',null,'');
+      line.style.cssText='display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)';
+      var who=el('div',null,s.who); who.style.cssText='font-family:var(--mono);font-size:11px;font-weight:700;color:'+s.col+';width:64px;flex-shrink:0;padding-top:3px';
+      var txt=el('div',null,s.text); txt.style.cssText='font-size:14px;flex:1';
+      line.appendChild(who); line.appendChild(txt); list.appendChild(line);
+    }
+    bn.disabled = i>=steps.length;
+    bn.style.opacity = i>=steps.length?0.5:1;
+  }
+  bn.onclick=function(){ if(i<steps.length){i++; render();} };
+  br.onclick=function(){ i=0; render(); };
+  render();
+})();
+</script>
+</body>
+</html>
+

@@ -1,0 +1,299 @@
+/* ============================================================
+   AI 101 for PMs — main stylesheet  ·  "Editorial" design system
+   Light, warm, reading-first. Fraunces (display serif) + Source Sans 3
+   (body) + JetBrains Mono (data). Tokens drive both the page chrome and
+   the canvas widgets (JS reads --accent/--ink/--grid/--muted/--panel/
+   --green/--amber/--red via the C cache in helpers.js), so a re-theme
+   flows through everything. Per-chapter accent set by a body class.
+   See DESIGN.md for the full system.
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap');
+
+/* DARK is the default theme. Light is opt-in via [data-theme="light"],
+   set by a no-FOUC inline script in each page's <head> from localStorage
+   (default "dark"). Per-chapter accents are theme-scoped so they read on
+   both surfaces. The canvas widgets read these tokens through the C cache
+   in helpers.js, so the theme toggle reloads the page to recolour them. */
+:root{
+  --bg:#17130f; --panel:#211c16; --ink:#f0e9dd; --muted:#a99e8c;
+  --line:#352c22; --accent:#e0833f; --accent-soft:rgba(224,131,63,.16);
+  --amber:#e0a93f; --amber-soft:rgba(224,169,63,.18); --green:#54b394; --red:#e58a93;
+  --nav-bg:rgba(23,19,15,.88);
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 12px 30px rgba(0,0,0,.5);
+  --radius:8px; --maxw:1180px;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:"Source Sans 3",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --serif:"Fraunces",Georgia,"Times New Roman",serif;
+}
+/* One standard accent (rust) across the whole site, both themes. Per-chapter
+   colour-coding was removed: it leaked different accents onto the utility
+   pages (Home/Revise/Assess/About), which read as inconsistent. The .ch1-.ch4
+   body classes still exist but no longer change the accent. */
+
+/* LIGHT theme overrides */
+:root[data-theme="light"]{
+  --bg:#fbf8f2; --panel:#ffffff; --ink:#211b14; --muted:#6f6657;
+  --line:#e7dfd0; --accent:#b4531f; --accent-soft:rgba(180,83,31,.08);
+  --amber:#b5790e; --amber-soft:rgba(181,121,14,.12); --green:#2f7d5b; --red:#b23a48;
+  --nav-bg:rgba(251,248,242,.85);
+  --shadow:0 1px 2px rgba(33,27,20,.05),0 8px 24px rgba(33,27,20,.05);
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+  line-height:1.7;font-size:17px;-webkit-font-smoothing:antialiased;font-feature-settings:"kern" 1}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline;text-underline-offset:2px}
+em{font-style:italic}
+h1,h2,h3,h4{font-family:var(--serif);font-weight:600;letter-spacing:-.01em}
+
+/* ---------- Top site nav ---------- */
+.sitenav{position:sticky;top:0;z-index:50;background:var(--nav-bg);
+  backdrop-filter:saturate(140%) blur(8px);border-bottom:1px solid var(--line)}
+.sitenav .inner{max-width:var(--maxw);margin:0 auto;padding:11px 24px;
+  display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.sitenav .brand{font-family:var(--serif);font-weight:700;font-size:17px;color:var(--ink)}
+.sitenav .brand span{color:var(--accent);font-style:italic}
+.sitenav a.navlink{color:var(--muted);font-size:14px;font-weight:600;padding:4px 2px}
+.sitenav a.navlink:hover,.sitenav a.navlink.here{color:var(--ink);text-decoration:none}
+.sitenav a.navlink.here{box-shadow:inset 0 -2px 0 var(--accent)}
+.sitenav .spacer{flex:1}
+.sitenav .progmini{font-size:12px;color:var(--muted);font-family:var(--mono)}
+
+/* ---------- Header (editorial hero — no gradients) ---------- */
+header.top{background:var(--bg);color:var(--ink);padding:64px 0 40px;text-align:left;
+  border-bottom:1px solid var(--line);position:relative}
+header.top::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent)}
+/* Header content lives in a centred column that exactly matches the body
+   column (.wrap / .wrap.single): same max-width, margin auto, and 24px padding,
+   so header text and body content share identical left/right edges. */
+header.top .hero{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+header.top .kicker{text-transform:uppercase;letter-spacing:.2em;font-size:12px;
+  font-weight:700;color:var(--accent);margin-bottom:16px;font-family:var(--mono)}
+header.top h1{margin:0 0 14px;font-size:clamp(34px,5vw,52px);line-height:1.05;font-weight:600;
+  letter-spacing:-.02em}
+header.top p{margin:0;max-width:660px;color:var(--muted);font-size:19px;line-height:1.55}
+header.top .pills{margin-top:24px;display:flex;gap:10px;flex-wrap:wrap}
+header.top .pill{background:var(--panel);border:1px solid var(--line);color:var(--muted);
+  padding:6px 14px;border-radius:999px;font-size:13px;font-weight:600}
+header.top .cta{display:inline-block;margin-top:26px;background:var(--accent);color:#fff;
+  font-weight:700;padding:13px 26px;border-radius:8px;font-size:16px;font-family:var(--sans)}
+header.top .cta:hover{text-decoration:none;filter:brightness(1.06)}
+
+/* ---------- Layout ---------- */
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px;
+  display:grid;grid-template-columns:240px 1fr;gap:48px;align-items:start}
+.wrap.single{display:block;max-width:880px}
+/* Single-column pages (Home/Revise/Assess/About): header column matches the
+   narrower body column so their edges line up. */
+body.single header.top .hero{max-width:880px}
+/* Chapter pages have a 240px TOC + 48px gap, so the body content starts
+   indented. Indent the header content the same amount (above mobile) so the
+   chapter title sits directly above its content column, not over the TOC.
+   24 (wrap padding) + 240 (toc) + 48 (gap) = 312. */
+@media(min-width:881px){
+  body:not(.single) header.top .hero{padding-left:312px}
+}
+nav.toc{position:sticky;top:64px;align-self:start;max-height:calc(100vh - 84px);
+  overflow:auto;padding:26px 0;font-size:14px}
+nav.toc h4{margin:18px 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:.14em;
+  color:var(--accent);font-family:var(--mono);font-weight:700}
+nav.toc h4:first-child{margin-top:0}
+nav.toc a{display:block;color:var(--muted);padding:5px 12px;border-radius:6px;border-left:2px solid transparent}
+nav.toc a:hover{background:var(--accent-soft);color:var(--ink);text-decoration:none}
+nav.toc a.active{color:var(--accent);font-weight:700;border-left-color:var(--accent);background:var(--accent-soft)}
+main{padding:34px 0 90px;min-width:0}
+
+/* ---------- Progress bar ---------- */
+.progress-wrap{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  padding:14px 18px;margin-bottom:28px;box-shadow:var(--shadow)}
+.progress-wrap .ptop{display:flex;justify-content:space-between;align-items:baseline;
+  font-size:13px;color:var(--muted);margin-bottom:9px;font-weight:600}
+.progress-wrap .ptop b{color:var(--ink)}
+.progress-track{height:8px;border-radius:6px;background:var(--accent-soft);overflow:hidden}
+.progress-fill{height:100%;width:0;background:var(--accent);transition:width .4s ease}
+.progress-wrap .chips{display:flex;gap:6px;margin-top:11px;flex-wrap:wrap}
+.progress-wrap .chip{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;
+  border:1px solid var(--line);color:var(--muted);font-family:var(--mono)}
+.progress-wrap .chip.done{background:rgba(47,125,91,.12);color:var(--green);border-color:transparent}
+.progress-wrap .presume{display:flex;justify-content:space-between;align-items:center;gap:12px;
+  margin-top:12px;padding-top:12px;border-top:1px solid var(--line);flex-wrap:wrap}
+.presume-link{font-weight:700;font-size:14px;color:var(--accent)}
+.presume-done{font-weight:700;font-size:14px;color:var(--green)}
+.presume-reset{background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;
+  font-family:var(--sans);text-decoration:underline;padding:0}
+.presume-reset:hover{color:var(--red)}
+
+/* ---------- Intro panels ---------- */
+.intro{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  padding:28px 30px;box-shadow:var(--shadow);margin-bottom:30px}
+.intro h2{margin-top:0;font-size:26px}
+.how{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:20px}
+.how div{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:15px}
+.how b{display:block;font-family:var(--mono);color:var(--accent);font-size:12px;
+  text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px}
+.swap-hint{font-size:14px;color:var(--muted);margin-top:16px;border-left:3px solid var(--accent);
+  padding:4px 0 4px 14px;font-style:italic}
+
+/* ---------- Chapter / week banners ---------- */
+.week-banner{margin:8px 0;padding:20px 24px;border-radius:var(--radius);color:var(--ink);
+  background:var(--accent-soft);border:1px solid var(--line);border-left:4px solid var(--accent)}
+.week-banner.muted{background:var(--bg)}
+.week-banner .wk{font-size:12px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;
+  color:var(--accent);font-family:var(--mono)}
+.week-banner h2{margin:6px 0 4px;font-size:27px}
+.week-banner p{margin:0;color:var(--muted);font-size:15px}
+
+/* ---------- Lesson / concept cards ---------- */
+.lesson{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  padding:32px 34px;box-shadow:var(--shadow);margin:30px 0;scroll-margin-top:74px}
+.lesson .lhead{display:flex;align-items:center;gap:14px;margin-bottom:8px}
+.lesson .num{flex:0 0 auto;width:34px;height:34px;border-radius:8px;background:var(--accent-soft);
+  color:var(--accent);font-weight:700;font-family:var(--mono);display:grid;place-items:center;font-size:14px}
+.lesson h3{margin:0;font-size:21px;line-height:1.25}
+.core{border-left:3px solid var(--accent);background:var(--accent-soft);
+  padding:14px 18px;border-radius:0 8px 8px 0;margin:16px 0;font-size:18px;max-width:68ch;
+  font-family:var(--serif);font-weight:500;line-height:1.5}
+.lesson p{margin:13px 0;max-width:68ch}
+.lesson ul{margin:13px 0;padding-left:22px;max-width:68ch}
+.lesson li{margin:7px 0}
+.takeaway{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:15px 18px;margin:18px 0;max-width:68ch}
+.takeaway b{color:var(--accent)}
+/* Interview line: collapsible (progressive disclosure). Quiet by default —
+   just an accent toggle — so it doesn't add a third heavy box to every card. */
+details.interview{border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 8px 8px 0;padding:12px 18px;margin:18px 0;max-width:68ch;background:transparent}
+details.interview summary{cursor:pointer;font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--accent);font-weight:700;font-family:var(--mono);list-style:none;outline:none}
+details.interview summary::-webkit-details-marker{display:none}
+details.interview summary::after{content:" ▸";opacity:.7}
+details.interview[open] summary::after{content:" ▾"}
+details.interview q{display:block;margin-top:10px;font-family:var(--serif);font-style:italic;
+  font-size:19px;line-height:1.5;color:var(--ink)}
+details.interview q::before{content:"\201C"} details.interview q::after{content:"\201D"}
+
+/* "Zepto example" marker */
+.eg-tag{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--accent);background:var(--accent-soft);border:1px solid var(--line);
+  border-radius:5px;padding:1px 7px;margin-right:6px;vertical-align:middle;font-family:var(--mono)}
+
+/* ---------- Viz panel ---------- */
+.viz{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:18px;margin:20px 0}
+.viz .vtitle{font-family:var(--mono);font-size:12px;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--muted);font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.viz .vtitle::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.tab{padding:7px 14px;border-radius:7px;border:1px solid var(--line);background:var(--panel);
+  cursor:pointer;font-size:13px;font-weight:600;color:var(--muted)}
+.tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.ctrl{display:flex;align-items:center;gap:10px;margin:10px 0;flex-wrap:wrap;font-size:14px}
+.ctrl label{min-width:120px;font-weight:600}
+input[type=range]{flex:1;min-width:140px;accent-color:var(--accent)}
+.btn{background:var(--accent);color:#fff;border:none;border-radius:7px;padding:9px 17px;
+  font-weight:700;cursor:pointer;font-size:14px;font-family:var(--sans)}
+.btn:hover{filter:brightness(1.06)}
+.btn.alt{background:var(--panel);color:var(--accent);border:1px solid var(--accent)}
+.readout{font-family:var(--mono);font-size:13px;background:var(--panel);border:1px solid var(--line);
+  border-radius:7px;padding:8px 12px;display:inline-block;color:var(--ink)}
+.hint{font-size:14px;color:var(--muted);margin-top:10px}
+.tok{display:inline-block;padding:3px 7px;margin:3px;border-radius:6px;font-family:var(--mono);
+  font-size:13px;border:1px solid var(--line)}
+canvas{max-width:100%;background:var(--panel);border-radius:8px;border:1px solid var(--line);display:block}
+textarea,input[type=text]{background:var(--panel);color:var(--ink);font-family:var(--sans)}
+
+/* ---------- Quiz ---------- */
+.quiz{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  padding:30px 32px;box-shadow:var(--shadow);margin:32px 0;scroll-margin-top:74px}
+.quiz h2{margin-top:0;font-size:26px}
+.qblock{border-top:1px solid var(--line);padding:20px 0}
+.qblock:first-of-type{border-top:none}
+.qblock .qq{font-weight:600;margin-bottom:12px;font-size:17px}
+.qopt{display:block;width:100%;text-align:left;background:var(--bg);border:1px solid var(--line);
+  border-radius:8px;padding:11px 15px;margin:7px 0;cursor:pointer;color:var(--ink);font-size:16px;
+  font-family:inherit;transition:.12s}
+.qopt:hover{border-color:var(--accent)}
+.qopt.correct{background:rgba(84,179,148,.14);border-color:var(--green);color:var(--ink)}
+.qopt.wrong{background:rgba(229,138,147,.14);border-color:var(--red);color:var(--ink)}
+.qopt:disabled{cursor:default}
+.qexp{font-size:14px;color:var(--muted);margin-top:9px;padding-left:8px;border-left:2px solid var(--line)}
+.qexp.show{border-left-color:var(--accent)}
+.quiz-result{margin-top:22px;padding:16px 18px;border-radius:8px;font-weight:700;text-align:center}
+.quiz-result.pass{background:rgba(84,179,148,.14);color:var(--green)}
+.quiz-result.fail{background:rgba(229,138,147,.14);color:var(--red)}
+.quiz-result .review{display:block;font-weight:500;font-size:14px;margin-top:8px;color:var(--ink)}
+.quiz-result .review a{margin:0 6px}
+
+/* ---------- Course map (landing) ---------- */
+.map{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin:24px 0}
+.map .ch{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  padding:22px 24px;box-shadow:var(--shadow);display:block;color:var(--ink);transition:.15s}
+.map .ch:hover{text-decoration:none;border-color:var(--accent);transform:translateY(-2px)}
+.map .ch .cn{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--accent)}
+.map .ch h3{margin:8px 0 6px;font-size:21px}
+.map .ch p{margin:0;font-size:15px;color:var(--muted)}
+.map .ch .meta{margin-top:14px;font-size:12px;color:var(--muted);font-family:var(--mono)}
+
+/* ---------- Revise ---------- */
+.mode-tabs{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0 26px}
+.mode-tabs .mt{flex:1;min-width:200px;text-align:left;background:var(--panel);border:1px solid var(--line);
+  border-radius:10px;padding:15px 17px;cursor:pointer;color:var(--ink)}
+.mode-tabs .mt.active{border-color:var(--accent);background:var(--accent-soft)}
+.mode-tabs .mt b{display:block;font-family:var(--serif);font-size:16px;margin-bottom:3px}
+.mode-tabs .mt span{font-size:13px;color:var(--muted)}
+.searchbox{width:100%;font-size:18px;padding:15px 17px;border:1px solid var(--line);border-radius:10px;
+  background:var(--panel);color:var(--ink);margin-bottom:16px;font-family:var(--sans)}
+.searchbox:focus{outline:none;border-color:var(--accent)}
+.flashcard{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  padding:32px 30px;box-shadow:var(--shadow);min-height:200px;cursor:pointer;position:relative}
+.flashcard .ftag{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--accent)}
+.flashcard h3{margin:10px 0;font-size:24px}
+.flashcard .flip-hint{position:absolute;top:18px;right:22px;font-size:12px;color:var(--muted);font-family:var(--mono)}
+.deck-ctrl{display:flex;align-items:center;gap:12px;margin:18px 0;flex-wrap:wrap}
+.deck-ctrl .count{font-family:var(--mono);font-size:13px;color:var(--muted)}
+.toggle{display:inline-flex;align-items:center;gap:7px;font-size:14px;color:var(--muted);cursor:pointer}
+
+/* ---------- What's-new ---------- */
+.wn-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  padding:24px 26px;margin:16px 0;box-shadow:var(--shadow)}
+.wn-card .wn-meta{display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+.wn-tag{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--amber);background:var(--amber-soft);border-radius:5px;padding:2px 8px}
+.wn-date{font-size:12px;color:var(--muted);font-family:var(--mono)}
+.wn-link{font-size:13px;color:var(--accent);margin-left:auto}
+.wn-card h3{margin:0 0 6px;font-size:21px}
+.signal-panel{background:var(--bg);border:1px dashed var(--line);border-radius:var(--radius);
+  padding:24px 26px;margin:30px 0}
+.signal-panel h3{margin-top:0}
+.signal-panel .sig-tag{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:2px 8px}
+
+/* ---------- Misc ---------- */
+.callout{background:var(--accent-soft);border:1px solid var(--line);border-radius:10px;
+  padding:17px 19px;margin:18px 0}
+.btn-row{display:flex;gap:12px;flex-wrap:wrap;margin:20px 0}
+
+/* Theme toggle (in nav) */
+.theme-toggle{background:none;border:1px solid var(--line);color:var(--muted);border-radius:7px;
+  width:34px;height:30px;cursor:pointer;font-size:15px;line-height:1;display:grid;place-items:center;
+  font-family:var(--sans)}
+.theme-toggle:hover{color:var(--ink);border-color:var(--accent)}
+
+/* Concept completion button (chapter cards) */
+.card-done{display:flex;justify-content:flex-end;align-items:center;gap:12px;margin-top:22px;
+  padding-top:18px;border-top:1px solid var(--line)}
+.done-btn.is-done{background:transparent;color:var(--green);border:1px solid var(--green)}
+footer{max-width:var(--maxw);margin:0 auto;padding:34px 24px 64px;color:var(--muted);
+  font-size:14px;border-top:1px solid var(--line)}
+footer a{color:var(--muted);text-decoration:underline}
+
+@media(max-width:880px){
+  .wrap{grid-template-columns:1fr;gap:8px}
+  nav.toc{position:static;max-height:none;border-bottom:1px solid var(--line)}
+  .how{grid-template-columns:1fr}
+  header.top{padding:46px 24px 34px}
+  body{font-size:16px}
+  .sitenav .inner{gap:12px}
+}

@@ -1,0 +1,4 @@
+.gstack/
+.DS_Store
+*.bak
+*.orig

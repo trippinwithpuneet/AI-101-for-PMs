@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){try{var t=localStorage.getItem("ai101.theme")||"dark";document.documentElement.setAttribute("data-theme",t);}catch(e){document.documentElement.setAttribute("data-theme","dark");}})();</script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Revise · AI 101 for PMs</title>
+<link rel="stylesheet" href="assets/css/main.css" />
+</head>
+<body class="ch1 single">
+<header class="top">
+  <div class="hero">
+  <div class="kicker">AI 101 for PMs · Revise</div>
+  <h1>Revise</h1>
+  <p>Three ways back into the material, all from the same 25 concepts. Thirty seconds before a meeting, ten minutes on a topic, or an hour before a real interview.</p>
+  </div>
+</header>
+
+<div class="wrap single">
+  <main>
+    <div id="progress"></div>
+
+    <div class="mode-tabs" id="mode-tabs">
+      <div class="mt active" data-mode="lookup"><b>🔎 Quick lookup</b><span>Type a term, get that one card instantly. Deeplinkable.</span></div>
+      <div class="mt" data-mode="chapter"><b>📚 Revise by chapter</b><span>Flashcards through one topic area.</span></div>
+      <div class="mt" data-mode="all"><b>🔁 Revise everything</b><span>All 25, in order or shuffled. Interview prep.</span></div>
+    </div>
+
+    <!-- Quick lookup -->
+    <section id="mode-lookup">
+      <input class="searchbox" id="search" type="text" placeholder="Search — try “RAG”, “hallucination”, “overfitting”, “cost”…" autocomplete="off" />
+      <div id="search-results"></div>
+      <div id="search-card"></div>
+    </section>
+
+    <!-- By chapter -->
+    <section id="mode-chapter" style="display:none">
+      <div class="tabs" id="chapter-pick"></div>
+      <div class="deck-ctrl">
+        <button class="btn alt" id="ch-prev">← Prev</button>
+        <button class="btn alt" id="ch-next">Next →</button>
+        <span class="count" id="ch-count"></span>
+      </div>
+      <div id="ch-deck"></div>
+    </section>
+
+    <!-- Everything -->
+    <section id="mode-all" style="display:none">
+      <div class="deck-ctrl">
+        <button class="btn alt" id="all-prev">← Prev</button>
+        <button class="btn alt" id="all-next">Next →</button>
+        <span class="count" id="all-count"></span>
+        <label class="toggle"><input type="checkbox" id="shuffle" /> Shuffle (spaced review)</label>
+      </div>
+      <div id="all-deck"></div>
+    </section>
+
+    <div class="btn-row" style="margin-top:30px">
+      <a class="btn alt" href="index.html">← Home</a>
+      <a class="btn alt" href="assess.html">Final assessment →</a>
+    </div>
+  </main>
+</div>
+
+<footer>AI 101 for PMs · Revise pulls from the same 25 concepts as the chapters. v1 uses keyword search; semantic search is planned for v2.</footer>
+
+<script src="assets/js/concepts.js"></script>
+<script src="assets/js/progress.js"></script>
+<script src="assets/js/helpers.js"></script>
+<script src="assets/js/revise.js"></script>
+<script>
+  Nav.mount({ here:'revise', base:'' });
+  Progress.renderBar(document.getElementById('progress'));
+
+  /* ---------- mode switching ---------- */
+  var modes = ['lookup','chapter','all'];
+  function setMode(m){
+    modes.forEach(function(x){ document.getElementById('mode-'+x).style.display = (x===m?'block':'none'); });
+    [].forEach.call(document.querySelectorAll('#mode-tabs .mt'), function(t){
+      t.classList.toggle('active', t.getAttribute('data-mode')===m);
+    });
+    if(m==='chapter') initChapter();
+    if(m==='all') initAll();
+  }
+  [].forEach.call(document.querySelectorAll('#mode-tabs .mt'), function(t){
+    t.onclick = function(){ setMode(t.getAttribute('data-mode')); };
+  });
+
+  /* ---------- quick lookup ---------- */
+  var search = document.getElementById('search');
+  var results = document.getElementById('search-results');
+  var cardBox = document.getElementById('search-card');
+  function showCard(concept){
+    results.innerHTML = '';
+    cardBox.innerHTML = '';
+    cardBox.appendChild(Revise.renderCard(concept, ''));
+    if(history.replaceState) history.replaceState(null, '', '#' + concept.id);
+  }
+  function runSearch(){
+    cardBox.innerHTML = '';
+    var q = search.value;
+    var hits = Revise.search(q);
+    results.innerHTML = '';
+    if(!q.trim()){ return; }
+    if(!hits.length){ results.appendChild(el('p','hint','No match. Try a broader term.')); return; }
+    hits.forEach(function(c){
+      var r = el('button','qopt', '<b>'+c.title+'</b> <span style="color:var(--muted)">· '+Revise.chapterName(c.chapter)+'</span>');
+      r.onclick = function(){ showCard(c); };
+      results.appendChild(r);
+    });
+    if(hits.length===1) showCard(hits[0]);
+  }
+  search.oninput = runSearch;
+  search.onkeydown = function(e){ if(e.key==='Enter'){ var h=Revise.search(search.value); if(h.length) showCard(h[0]); } };
+
+  /* ---------- by chapter ---------- */
+  var chCur = 1, chIdx = 0, chList = [];
+  function initChapter(){
+    var pick = document.getElementById('chapter-pick');
+    if(pick.children.length===0){
+      [1,2,3].forEach(function(n){
+        var b = el('div','tab'+(n===1?' active':''), Revise.chapterName(n));
+        b.onclick = function(){
+          [].forEach.call(pick.children,function(x){x.classList.remove('active');});
+          b.classList.add('active'); chCur=n; chIdx=0; loadChapter();
+        };
+        pick.appendChild(b);
+      });
+    }
+    loadChapter();
+  }
+  function loadChapter(){ chList = Revise.byChapter(chCur); chIdx = 0; paintCh(); }
+  function paintCh(){
+    var deck = document.getElementById('ch-deck'); deck.innerHTML = '';
+    if(!chList.length) return;
+    deck.appendChild(Revise.renderFlashcard(chList[chIdx], ''));
+    document.getElementById('ch-count').textContent = (chIdx+1)+' / '+chList.length;
+  }
+  document.getElementById('ch-prev').onclick = function(){ if(chList.length){ chIdx=(chIdx-1+chList.length)%chList.length; paintCh(); } };
+  document.getElementById('ch-next').onclick = function(){ if(chList.length){ chIdx=(chIdx+1)%chList.length; paintCh(); } };
+
+  /* ---------- everything ---------- */
+  var allIdx = 0, allList = [];
+  function shuffleArr(a){ a=a.slice(); for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i];a[i]=a[j];a[j]=t; } return a; }
+  function initAll(){
+    allList = document.getElementById('shuffle').checked ? shuffleArr(Revise.all()) : Revise.all();
+    allIdx = 0; paintAll();
+  }
+  function paintAll(){
+    var deck = document.getElementById('all-deck'); deck.innerHTML = '';
+    if(!allList.length) return;
+    deck.appendChild(Revise.renderFlashcard(allList[allIdx], ''));
+    document.getElementById('all-count').textContent = (allIdx+1)+' / '+allList.length;
+  }
+  document.getElementById('all-prev').onclick = function(){ if(allList.length){ allIdx=(allIdx-1+allList.length)%allList.length; paintAll(); } };
+  document.getElementById('all-next').onclick = function(){ if(allList.length){ allIdx=(allIdx+1)%allList.length; paintAll(); } };
+  document.getElementById('shuffle').onchange = initAll;
+
+  /* ---------- deeplink: revise.html#rag (also handles in-page hash changes) ---------- */
+  function openHash(){
+    var id = (location.hash||'').replace('#','');
+    var c = id && Revise.byId(id);
+    if(c){ setMode('lookup'); search.value = ''; showCard(c); }
+  }
+  window.addEventListener('hashchange', openHash);
+  if((location.hash||'').length > 1) openHash(); else setMode('lookup');
+</script>
+</body>
+</html>

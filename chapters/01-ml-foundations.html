@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){try{var t=localStorage.getItem("ai101.theme")||"dark";document.documentElement.setAttribute("data-theme",t);}catch(e){document.documentElement.setAttribute("data-theme","dark");}})();</script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Chapter 1 — ML Foundations · AI 101 for PMs</title>
+<link rel="stylesheet" href="../assets/css/main.css" />
+</head>
+<body class="ch1">
+  <header class="top">
+  <div class="hero">
+    <div class="kicker">AI 101 for PMs · Chapter 1</div>
+    <h1>ML Foundations</h1>
+    <p>One connected story: data becomes weights, weights are nudged downhill by gradient descent, loss curves show whether that's working, and the gap between training and validation is where every Week-1 failure hides. Learn to read that gap and you can review any model before it ships.</p>
+    </div>
+</header>
+
+  <div class="wrap">
+    <nav class="toc" id="toc"></nav>
+    <main>
+      <div id="progress"></div>
+
+      <section class="intro">
+        <h2>Why this chapter matters for PMs</h2>
+        <p>Before you can reason about LLMs, RAG, or agents, you need the machine-learning fundamentals underneath them — and they're simpler than the jargon suggests. The whole chapter teaches one habit: when a model is shown to you as a single accuracy number, you know exactly which questions expose what that number is hiding. That habit is the difference between a PM who rubber-stamps a model launch and one who can actually review it.</p>
+        <p class="swap-hint">Examples are grocery-delivery flavoured — swap in your own domain when you present.</p>
+      </section>
+
+      <div id="cards"></div>
+
+      <section class="intro" id="summary">
+        <h2>Chapter summary</h2>
+        <p>Every concept here is one angle on the same throughline: <b>never trust a single number until you know what it was measured against, at every layer of the stack.</b> For Chapter 1 that layer is the <b>data layer</b>. A headline "98% accuracy" means nothing until you ask which set it came from — because training accuracy measures memorisation, and <b>validation accuracy</b> is the only one that estimates the real world. The two-line loss curve, not a headline number, is what tells you whether the model generalised; the moment training and validation loss diverge is the moment overfitting begins, and it's exactly what early stopping watches for. Splits keep the test set an honest blind exam, distribution shift is what breaks a frozen model when the world moves, and hyperparameter tuning is the cheapest lever to fix an underperformer. The pre-ship review ties it together: make each hidden failure mode answer for itself before launch. Later chapters carry the same discipline up the stack — to tokens and latency, then to evals and benchmarks.</p>
+      </section>
+
+      <section class="quiz" id="quiz">
+        <h2>Chapter 1 quiz</h2>
+        <p class="hint">5–8+ questions · 80% to pass · a failed quiz links back to the cards to review.</p>
+        <div id="quiz-mount"></div>
+      </section>
+
+      <div class="btn-row">
+        <a class="btn" href="02-how-llms-work.html">Next: Chapter 2 →</a>
+        <a class="btn alt" href="../revise.html">Revise</a>
+      </div>
+    </main>
+  </div>
+
+  <footer>
+    AI 101 · Field notes for AI PMs. Chapter 1 of 4 · all interactives run locally in your browser — no accounts, no network, safe to share.
+  </footer>
+
+  <script src="../assets/js/concepts.js"></script>
+  <script src="../assets/js/progress.js"></script>
+  <script src="../assets/js/helpers.js"></script>
+  <script>
+    Nav.mount({here:'ch1', base:'../'});
+    Progress.renderBar(document.getElementById('progress'));
+    var __list = buildChapter(1, document.getElementById('cards'));
+    (function(){
+      var toc = document.getElementById('toc');
+      var h = el('h4', null, 'Concepts'); toc.appendChild(h);
+      __list.forEach(function(c){
+        var a = el('a', null, c.order + ' · ' + c.title);
+        a.href = '#' + c.id;
+        toc.appendChild(a);
+      });
+    })();
+    renderQuiz(document.getElementById('quiz-mount'), chapterQuestions(1), {chapter:1, reviewBase:'../', passPct:80});
+  </script>
+
+  <script>
+  /* ============================================================
+     Chapter-1 widgets — one IIFE per concept. Ported from the
+     field-notes reference; the MAIN data series uses C.accent so
+     it themes per chapter, while semantic colours (orange =
+     validation, pink/red = error/danger, green = good) are kept.
+     This script runs AFTER buildChapter(), so every *-mount exists.
+     ============================================================ */
+
+  /* ---------- nn: neural network ---------- */
+  (function(){
+    var m=document.getElementById('nn-mount'); if(!m)return;
+    var inputs=[{n:'Distance (3.2 km)',v:0.55},{n:'Items in cart (8)',v:0.40},{n:'Rider load (high)',v:0.80}];
+    var W=[0.9,0.4,1.1], bias=-0.3;
+    var d=cv(m,560,210);
+    inputs.forEach(function(inp,i){ slider(m,inp.n+' · weight',-2,2,W[i],0.1,function(v){W[i]=v;draw();}); });
+    slider(m,'Bias',-2,2,bias,0.1,function(v){bias=v;draw();});
+    var out=el('div','ctrl'); var bar=el('div',null,'');
+    bar.style.cssText='flex:1;height:22px;border-radius:6px;background:'+C.grid+';overflow:hidden;border:1px solid '+C.grid;
+    var fill=el('div',null,''); fill.style.cssText='height:100%;width:0;transition:width .15s'; bar.appendChild(fill);
+    var lab=el('span','readout','—'); out.appendChild(el('label',null,'P(late)')); out.appendChild(bar); out.appendChild(lab); m.appendChild(out);
+    function sig(z){return 1/(1+Math.exp(-z));}
+    function draw(){
+      var z=bias; for(var i=0;i<3;i++)z+=W[i]*inputs[i].v; var p=sig(z*3);
+      fill.style.width=(p*100)+'%'; fill.style.background=p>0.5?C.red:C.green;
+      lab.textContent=(p*100).toFixed(0)+'% '+(p>0.5?'LATE':'on time');
+      var x=d.x,w=d.w,h=d.h; x.clearRect(0,0,w,h); x.font='12px sans-serif';
+      var ny=[45,105,165], nx=70, cx=300, ox=480, cy=105;
+      for(var i=0;i<3;i++){ var lw=Math.min(7,Math.abs(W[i])*3+0.5);
+        x.strokeStyle=W[i]>=0?'rgba(52,211,153,.7)':'rgba(244,114,182,.7)'; x.lineWidth=lw;
+        x.beginPath(); x.moveTo(nx+12,ny[i]); x.lineTo(cx-26,cy); x.stroke();
+        x.fillStyle=C.accent; x.beginPath(); x.arc(nx,ny[i],12,0,7); x.fill();
+        x.fillStyle=C.ink; x.fillText(inputs[i].n.split(' ')[0],nx-18,ny[i]+30);}
+      x.lineWidth=Math.min(7,Math.abs(1)*3); x.strokeStyle=C.muted; x.beginPath(); x.moveTo(cx+26,cy); x.lineTo(ox-14,cy); x.stroke();
+      x.fillStyle=C.accent; x.beginPath(); x.arc(cx,cy,26,0,7); x.fill();
+      x.fillStyle='#fff'; x.textAlign='center'; x.fillText('Σ',cx,cy+4); x.textAlign='left';
+      x.fillStyle=p>0.5?C.red:C.green; x.beginPath(); x.arc(ox,cy,16,0,7); x.fill();
+      x.fillStyle=C.ink; x.fillText('prediction',ox-26,cy+38);
+    }
+    draw();
+  })();
+
+  /* ---------- overfit: underfit / good fit / overfit ---------- */
+  (function(){
+    var m=document.getElementById('overfit-mount'); if(!m)return;
+    var pts=[[0.07,0.30],[0.18,0.55],[0.30,0.40],[0.40,0.62],[0.52,0.50],[0.63,0.74],[0.74,0.60],[0.85,0.82],[0.93,0.70]];
+    var mode=1;
+    tabs(m,['Underfit','Good fit','Overfit'],function(i){mode=i;draw();});
+    var d=cv(m,560,300);
+    var info=el('div','ctrl'); var t1=el('span','readout',''); info.appendChild(t1); m.appendChild(info);
+    function px(x){return 40+x*490;} function py(y){return 270-y*240;}
+    function draw(){
+      var x=d.x,w=d.w,h=d.h; x.clearRect(0,0,w,h);
+      x.strokeStyle=C.grid; x.lineWidth=1; for(var g=0;g<=4;g++){var yy=30+g*60; x.beginPath();x.moveTo(40,yy);x.lineTo(530,yy);x.stroke();}
+      x.strokeStyle=C.accent; x.lineWidth=3; x.beginPath();
+      for(var s=0;s<=100;s++){ var xx=s/100, yy;
+        if(mode===0){ yy=0.36+0.42*xx; }
+        else if(mode===1){ yy=0.32+0.5*xx+0.06*Math.sin(xx*3); }
+        else {
+          yy=0.32+0.5*xx; var near=0;
+          pts.forEach(function(p){var dd=Math.exp(-Math.pow((xx-p[0])/0.055,2)); near+=dd*(p[1]-(0.32+0.5*p[0]));});
+          yy+=near; }
+        var X=px(xx),Y=py(yy); if(s===0)x.moveTo(X,Y); else x.lineTo(X,Y);} x.stroke();
+      pts.forEach(function(p){x.fillStyle=C.ink; x.beginPath(); x.arc(px(p[0]),py(p[1]),4.5,0,7); x.fill();});
+      var msg=['Too simple — misses the trend on both seen and new data. <b>High error everywhere.</b>',
+               'Captures the trend, ignores the noise. <b>Generalises to new points.</b>',
+               'Threads every point exactly. <b>~Perfect on training, wild on anything new.</b>'][mode];
+      var acc=[['~71%','~69%'],['~88%','~86%'],['~99%','~64%']][mode];
+      t1.innerHTML='Train acc '+acc[0]+' · New-data acc '+acc[1]+' &nbsp; — '+msg;
+    }
+    draw();
+  })();
+
+  /* ---------- gd: gradient descent ---------- */
+  (function(){
+    var m=document.getElementById('gd-mount'); if(!m)return;
+    var lr=0.15, ball=null, raf=null;
+    // A clear bowl that fits the canvas: mostly convex with a little texture,
+    // single visible minimum near x=0. (The old ripply function trapped the
+    // ball in an off-screen local minimum on the first step.)
+    function f(x){return 0.14*x*x + 0.18*Math.cos(1.2*x);}
+    function df(x){return 0.28*x - 0.216*Math.sin(1.2*x);}
+    var d=cv(m,560,280);
+    var row=el('div','ctrl');
+    var b1=el('button','btn','▶ Roll the ball'); b1.onclick=function(){ball={x:-5.2};run();};
+    var b2=el('button','btn alt','Reset'); b2.onclick=function(){if(raf)cancelAnimationFrame(raf);raf=null;ball=null;st.textContent='Press “Roll the ball”';draw();};
+    row.appendChild(b1); row.appendChild(b2); m.appendChild(row);
+    slider(m,'Learning rate',0.01,1.4,lr,0.01,function(v){lr=v;});
+    var status=el('div','ctrl'); var st=el('span','readout','Press “Roll the ball”'); status.appendChild(st); m.appendChild(status);
+    function X(x){return 280+x*42;} function Y(y){return 250-y*44;}
+    function draw(){
+      var x=d.x,w=d.w,h=d.h; x.clearRect(0,0,w,h);
+      x.strokeStyle=C.grid; x.lineWidth=1; x.beginPath(); x.moveTo(X(0),14); x.lineTo(X(0),266); x.stroke();
+      x.strokeStyle=C.accent; x.lineWidth=2.5; x.beginPath();
+      for(var s=-6;s<=6;s+=0.05){var px=X(s),py=Y(f(s)); if(s===-6)x.moveTo(px,py);else x.lineTo(px,py);} x.stroke();
+      if(ball){ x.fillStyle=C.amber; x.beginPath(); x.arc(X(ball.x),Y(f(ball.x))-9,9,0,7); x.fill(); }
+    }
+    function run(){ if(raf)cancelAnimationFrame(raf);
+      function step(){ var g=df(ball.x); ball.x=ball.x-lr*g;
+        if(ball.x>6.2||ball.x<-6.2){ st.innerHTML='💥 <b>Diverged</b> — step size too large, the ball flew off.'; ball.x=Math.max(-6.2,Math.min(6.2,ball.x)); draw(); return; }
+        draw();
+        if(Math.abs(g)<0.008){ st.innerHTML='✅ Settled at the minimum (slope ≈ 0), x='+ball.x.toFixed(2)+'.'; return; }
+        raf=requestAnimationFrame(step);
+      } step();
+    }
+    draw();
+  })();
+
+  /* ---------- loss: loss curves ---------- */
+  (function(){
+    var m=document.getElementById('loss-mount'); if(!m)return; var mode=0;
+    tabs(m,['Healthy','Overfitting','Underfitting','Diverging'],function(i){mode=i;draw();});
+    var d=cv(m,560,300); var info=el('div','ctrl'); var t=el('span','readout',''); info.appendChild(t); m.appendChild(info);
+    function X(e){return 50+e*480;} function Y(l){return 270-l*230;}
+    function draw(){
+      var x=d.x,w=d.w,h=d.h; x.clearRect(0,0,w,h);
+      x.strokeStyle=C.grid; for(var g=0;g<=4;g++){var yy=40+g*57;x.beginPath();x.moveTo(50,yy);x.lineTo(530,yy);x.stroke();}
+      x.fillStyle=C.muted; x.font='11px sans-serif'; x.fillText('loss',8,150); x.fillText('epochs →',470,292);
+      function line(fn,color){x.strokeStyle=color;x.lineWidth=3;x.beginPath();
+        for(var e=0;e<=1;e+=0.01){var px=X(e),py=Y(fn(e)); if(e===0)x.moveTo(px,py);else x.lineTo(px,py);}x.stroke();}
+      var tr,va;
+      if(mode===0){tr=function(e){return 0.85*Math.exp(-3*e)+0.08;}; va=function(e){return 0.85*Math.exp(-2.8*e)+0.12;};}
+      else if(mode===1){tr=function(e){return 0.85*Math.exp(-3.2*e)+0.04;}; va=function(e){return 0.55*Math.exp(-5*e)+0.12+0.45*Math.pow(Math.max(0,e-0.35),2);};}
+      else if(mode===2){tr=function(e){return 0.55*Math.exp(-2*e)+0.42;}; va=function(e){return 0.6*Math.exp(-1.8*e)+0.46;};}
+      else {tr=function(e){return 0.5+0.4*Math.sin(e*30)*e+0.1;}; va=function(e){return 0.55+0.45*Math.sin(e*28+1)*e+0.1;};}
+      line(va,C.amber); line(tr,C.accent);
+      if(mode===1){var ex=0.35; x.strokeStyle=C.red; x.setLineDash([5,4]); x.beginPath();x.moveTo(X(ex),30);x.lineTo(X(ex),275);x.stroke(); x.setLineDash([]);
+        x.fillStyle=C.red; x.fillText('↑ lines diverge — stop here',X(ex)+6,46);}
+      x.fillStyle=C.accent; x.fillText('— training loss',50,20); x.fillStyle=C.amber; x.fillText('— validation loss',170,20);
+      t.innerHTML=['Both fall together and stay close. <b>Ship it.</b>',
+        'Training keeps dropping; validation turns up. <b>Memorising — stop at the dashed line.</b>',
+        'Both plateau high. <b>Model too simple or data too thin — it never learned.</b>',
+        'Erratic spikes. <b>Learning rate too high — training is unstable.</b>'][mode];
+    }
+    draw();
+  })();
+
+  /* ---------- split: train/val/test + peek leakage ---------- */
+  (function(){
+    var m=document.getElementById('split-mount'); if(!m)return; var train=70, peeks=0;
+    var barWrap=el('div',null,''); barWrap.style.cssText='display:flex;height:46px;border-radius:8px;overflow:hidden;border:1px solid '+C.grid+';font-size:12px;font-weight:700;color:#0f0d17;text-align:center';
+    var a=el('div',null,''),b=el('div',null,''),c=el('div',null,'');
+    a.style.background=C.accent;b.style.background=C.green;c.style.background=C.amber;
+    [a,b,c].forEach(function(x){x.style.cssText+=';display:grid;place-items:center;line-height:1.1'});
+    barWrap.appendChild(a);barWrap.appendChild(b);barWrap.appendChild(c); m.appendChild(barWrap);
+    function setBar(){var rest=100-train; var v=Math.round(rest/2),te=rest-v;
+      a.style.width=train+'%';b.style.width=v+'%';c.style.width=te+'%';
+      a.innerHTML='Train<br>'+train+'%';b.innerHTML='Val<br>'+v+'%';c.innerHTML='Test<br>'+te+'%';}
+    slider(m,'Train share',50,90,train,1,function(v){train=v;setBar();});
+    var sim=el('div','viz',''); sim.style.margin='14px 0 0'; sim.style.background=C.panel;
+    var st=el('div','readout','True accuracy: 72%  ·  Reported test accuracy: 72%  ·  gap: 0');
+    var row=el('div','ctrl'); var pk=el('button','btn','Peek at test set & retune'); var rs=el('button','btn alt','Reset');
+    row.appendChild(pk);row.appendChild(rs); sim.appendChild(row); sim.appendChild(st);
+    var note=el('div','hint',''); sim.appendChild(note); m.appendChild(sim);
+    function show(){var reported=Math.min(94,72+peeks*2.6).toFixed(0);
+      st.innerHTML='True accuracy: <b>72%</b> &nbsp;·&nbsp; Reported test accuracy: <b style="color:'+C.red+'">'+reported+'%</b> &nbsp;·&nbsp; peeks: '+peeks;
+      note.innerHTML=peeks===0?'A clean test set: reported = true.':'You’ve tuned against the test set '+peeks+'× — the score is now '+(reported-72)+' pts of pure illusion. <b>This is data leakage.</b> Ship at '+reported+'%, get 72% in production.';}
+    pk.onclick=function(){peeks++;show();}; rs.onclick=function(){peeks=0;show();};
+    setBar(); show();
+  })();
+
+  /* ---------- dshift: distribution shift ---------- */
+  (function(){
+    var m=document.getElementById('dshift-mount'); if(!m)return; var shift=0.6;
+    var d=cv(m,560,260);
+    slider(m,'Production drift',0,5,shift,0.1,function(v){shift=v;draw();});
+    var info=el('div','ctrl'); var t=el('span','readout',''); info.appendChild(t); m.appendChild(info);
+    function g(x,mu){return Math.exp(-0.5*Math.pow((x-mu)/1.1,2));}
+    function draw(){
+      var x=d.x,w=d.w,h=d.h; x.clearRect(0,0,w,h); var mu1=-1.2, mu2=-1.2+shift;
+      function curve(mu,fill,stroke){x.beginPath(); var first=true;
+        for(var v=-6;v<=8;v+=0.05){var px=50+(v+6)*(460/14),py=220-g(v,mu)*170; if(first){x.moveTo(px,220);x.lineTo(px,py);first=false;}else x.lineTo(px,py);}
+        x.lineTo(50+(8+6)*(460/14),220); x.closePath(); x.fillStyle=fill; x.fill(); x.strokeStyle=stroke; x.lineWidth=2; x.stroke();}
+      curve(mu1,'rgba(167,139,250,.22)',C.accent); curve(mu2,'rgba(251,191,36,.22)',C.amber);
+      var ov=0,n=0; for(var v=-6;v<=8;v+=0.05){ov+=Math.min(g(v,mu1),g(v,mu2)); n+=Math.max(g(v,mu1),g(v,mu2)); }
+      var overlap=Math.round(100*ov/n);
+      x.fillStyle=C.accent; x.font='12px sans-serif'; x.fillText('what it trained on',60,30);
+      x.fillStyle=C.amber; x.fillText('what it now predicts',360,30);
+      t.innerHTML='Overlap (reliable zone): <b>'+overlap+'%</b> — '+(overlap>70?'model still mostly valid.':overlap>40?'reliability degrading; monitor closely.':'<b style="color:'+C.red+'">model is largely guessing on today’s world.</b>');
+    }
+    draw();
+  })();
+
+  /* ---------- earlystop: early stopping ---------- */
+  (function(){
+    var m=document.getElementById('earlystop-mount'); if(!m)return; var complexity=6, data=4, patience=8;
+    var d=cv(m,560,290);
+    slider(m,'Model complexity',1,10,complexity,1,function(v){complexity=v;draw();});
+    slider(m,'Dataset size',1,10,data,1,function(v){data=v;draw();});
+    slider(m,'Patience (epochs)',1,20,patience,1,function(v){patience=v;draw();});
+    var info=el('div','ctrl'); var t=el('span','readout',''); info.appendChild(t); m.appendChild(info);
+    function X(e){return 50+e*480;} function Y(l){return 260-l*220;}
+    function draw(){
+      var x=d.x,w=d.w,h=d.h; x.clearRect(0,0,w,h);
+      x.strokeStyle=C.grid; for(var g=0;g<=4;g++){var yy=30+g*57;x.beginPath();x.moveTo(50,yy);x.lineTo(530,yy);x.stroke();}
+      var gap=(complexity/10)*(1-data/12); var turn=0.15+0.5*(data/10)-0.04*(complexity/10);
+      function tr(e){return 0.85*Math.exp(-3*e)+0.05;}
+      function va(e){return 0.85*Math.exp(-3*e)+0.10+gap*Math.pow(Math.max(0,e-turn),2)*3;}
+      var best=1e9,bestE=0; for(var e=0;e<=1;e+=0.005){if(va(e)<best){best=va(e);bestE=e;}}
+      [[tr,C.accent],[va,C.amber]].forEach(function(p){x.strokeStyle=p[1];x.lineWidth=3;x.beginPath();
+        for(var e=0;e<=1;e+=0.01){var px=X(e),py=Y(p[0](e));if(e===0)x.moveTo(px,py);else x.lineTo(px,py);}x.stroke();});
+      x.strokeStyle=C.green; x.setLineDash([5,4]); x.beginPath();x.moveTo(X(bestE),25);x.lineTo(X(bestE),258);x.stroke();x.setLineDash([]);
+      x.fillStyle=C.green; x.font='12px sans-serif'; x.fillText('⛔ stop here',X(bestE)+5,40);
+      x.fillStyle=C.accent; x.fillText('— training',50,18); x.fillStyle=C.amber; x.fillText('— validation',140,18);
+      var wasted=Math.round((1-bestE)*100);
+      t.innerHTML='Best checkpoint at ~'+Math.round(bestE*100)+'% of training (patience '+patience+'). Without early stopping you’d run to the end and waste ~<b>'+wasted+'%</b> of epochs — and ship a worse model.';
+    }
+    draw();
+  })();
+
+  /* ---------- hparams: hyperparameters ---------- */
+  (function(){
+    var m=document.getElementById('hparams-mount'); if(!m)return; var lr=0.4, depth=5, drop=0.1;
+    var d=cv(m,560,290);
+    slider(m,'Learning rate',0.05,1,lr,0.05,function(v){lr=v;draw();});
+    slider(m,'Depth (layers)',2,10,depth,1,function(v){depth=v;draw();});
+    slider(m,'Dropout',0,0.6,drop,0.05,function(v){drop=v;draw();});
+    var info=el('div','ctrl'); var t=el('span','readout',''); info.appendChild(t); m.appendChild(info);
+    function X(e){return 50+e*480;} function Y(l){return 260-l*220;}
+    function draw(){
+      var x=d.x,w=d.w,h=d.h; x.clearRect(0,0,w,h);
+      x.strokeStyle=C.grid; for(var g=0;g<=4;g++){var yy=30+g*57;x.beginPath();x.moveTo(50,yy);x.lineTo(530,yy);x.stroke();}
+      var unstable=Math.max(0,(lr-0.55))*1.6; var overfit=Math.max(0,(depth/10)-drop-0.2)*1.3;
+      function tr(e){return 0.8*Math.exp(-(2+depth*0.3)*e)+0.05 + unstable*0.25*Math.sin(e*40);}
+      function va(e){return 0.8*Math.exp(-(2+depth*0.2)*e)+0.1 + overfit*Math.pow(Math.max(0,e-0.3),2)*3 + unstable*0.3*Math.sin(e*40+1);}
+      [[tr,C.accent],[va,C.amber]].forEach(function(p){x.strokeStyle=p[1];x.lineWidth=3;x.beginPath();
+        for(var e=0;e<=1;e+=0.01){var px=X(e),py=Y(Math.max(0,Math.min(1,p[0](e))));if(e===0)x.moveTo(px,py);else x.lineTo(px,py);}x.stroke();});
+      x.fillStyle=C.accent; x.font='12px sans-serif'; x.fillText('— training',50,18); x.fillStyle=C.amber; x.fillText('— validation',140,18);
+      var msg= unstable>0.1?'<b style="color:'+C.red+'">Learning rate too high</b> — curves spike chaotically (divergence).':
+               overfit>0.2?'<b style="color:'+C.red+'">Deep network, little dropout</b> — validation pulls away (overfitting). Add dropout.':
+               'Stable run, curves track together. <b>Healthy settings.</b>';
+      t.innerHTML=msg;
+    }
+    draw();
+  })();
+
+  /* ---------- preship: pre-ship review checklist ---------- */
+  (function(){
+    var m=document.getElementById('preship-mount'); if(!m)return;
+    var items=[
+      ['Train &amp; validation loss reviewed; shipping the best checkpoint','Red flag: only final-epoch accuracy shown.'],
+      ['Test set used exactly once; no leakage across the split','Red flag: "we kept checking the test score and retraining."'],
+      ['Performance checked per segment, not just overall','Red flag: one global number hiding a broken cohort.'],
+      ['Test set is representative of users we’ll actually serve','Red flag: trained on one city/season, shipping to another.'],
+      ['There is a monitoring + rollback plan for production failure','Red flag: "we’ll know if users complain."']
+    ];
+    var checked=[false,false,false,false,false];
+    items.forEach(function(it,i){
+      var row=el('div',null,''); row.style.cssText='display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid '+C.grid;
+      var cb=document.createElement('input'); cb.type='checkbox'; cb.style.marginTop='4px'; cb.style.width='18px'; cb.style.height='18px'; cb.style.accentColor=C.green;
+      var txt=el('div',null,'<b>Q'+(i+1)+'.</b> '+it[0]+'<div class="hint" style="margin-top:2px">'+it[1]+'</div>');
+      cb.onchange=function(){checked[i]=cb.checked;verdict();}; row.appendChild(cb); row.appendChild(txt); m.appendChild(row);
+    });
+    var v=el('div',null,''); v.style.cssText='margin-top:14px;padding:14px 16px;border-radius:10px;font-weight:700;text-align:center'; m.appendChild(v);
+    function verdict(){var n=checked.filter(Boolean).length;
+      if(n===5){v.style.background='rgba(52,211,153,.16)';v.style.color=C.green;v.innerHTML='✅ Ready to ship — all five failure modes accounted for.';}
+      else{v.style.background='rgba(244,114,182,.14)';v.style.color=C.red;v.innerHTML='⛔ Blocked — '+(5-n)+' open item'+(5-n>1?'s':'')+'. A headline accuracy number is hiding what these cover.';}
+    }
+    verdict();
+  })();
+  </script>
+</body>
+</html>

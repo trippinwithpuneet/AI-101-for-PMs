@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){try{var t=localStorage.getItem("ai101.theme")||"dark";document.documentElement.setAttribute("data-theme",t);}catch(e){document.documentElement.setAttribute("data-theme","dark");}})();</script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Final assessment · AI 101 for PMs</title>
+<link rel="stylesheet" href="assets/css/main.css" />
+</head>
+<body class="ch3 single">
+<header class="top w3">
+  <div class="hero">
+  <div class="kicker">AI 101 for PMs · Assessment</div>
+  <h1>Final assessment</h1>
+  <p>A mixed set of questions drawn from across all three chapters. 80% to pass. This is the "can I actually use this in a launch review or an interview?" check.</p>
+  </div>
+</header>
+
+<div class="wrap single">
+  <main>
+    <div id="progress"></div>
+
+    <section class="intro">
+      <h2>How it works</h2>
+      <p>15 questions, mixed across data foundations, how LLMs work, and evals/safety/cost — single correct answer, explanation revealed after each. Score 80% or higher to pass. You can retake with a fresh shuffle anytime.</p>
+      <div class="btn-row">
+        <button class="btn" id="start">Start assessment</button>
+        <button class="btn alt" id="retake" style="display:none">↻ Retake (reshuffle)</button>
+      </div>
+    </section>
+
+    <section class="quiz" id="quiz" style="display:none">
+      <h2>Questions</h2>
+      <div id="assess-mount"></div>
+    </section>
+
+    <div id="share"></div>
+
+    <div class="btn-row" style="margin-top:30px">
+      <a class="btn alt" href="index.html">← Home</a>
+      <a class="btn alt" href="revise.html">Revise everything</a>
+    </div>
+  </main>
+</div>
+
+<footer>AI 101 for PMs · The assessment pulls from the same 25 concepts as the chapters.</footer>
+
+<script src="assets/js/concepts.js"></script>
+<script src="assets/js/progress.js"></script>
+<script src="assets/js/helpers.js"></script>
+<script>
+  Nav.mount({ here:'assess', base:'' });
+  Progress.renderBar(document.getElementById('progress'));
+
+  var SITE_URL = 'https://github.com/<your-username>/ai101-for-pms'; // update on publish
+
+  function shuffleArr(a){ a=a.slice(); for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i];a[i]=a[j];a[j]=t; } return a; }
+
+  function buildPool(){
+    // mixed across chapters 1-3, then take 15
+    var pool = chapterQuestions(1).concat(chapterQuestions(2)).concat(chapterQuestions(3));
+    return shuffleArr(pool).slice(0, 15);
+  }
+
+  function start(){
+    document.getElementById('quiz').style.display = 'block';
+    document.getElementById('retake').style.display = 'inline-block';
+    document.getElementById('start').textContent = 'Restart';
+    document.getElementById('share').innerHTML = '';
+    var mount = document.getElementById('assess-mount');
+    mount.innerHTML = '';
+    renderQuiz(mount, buildPool(), {
+      passPct: 80,
+      reviewBase: '',
+      onComplete: function(pct, pass, correct, total){
+        showShare(pct, pass, correct, total);
+      }
+    });
+    document.getElementById('quiz').scrollIntoView({behavior:'smooth'});
+  }
+
+  function showShare(pct, pass, correct, total){
+    var box = document.getElementById('share');
+    box.innerHTML = '';
+    var wrap = el('section','callout');
+    wrap.appendChild(el('h3', null, (pass?'🎓 Passed':'Keep going') + ' — ' + correct + '/' + total + ' (' + pct + '%)'));
+    wrap.appendChild(el('p', null, pass
+      ? 'You can talk about AI in a launch review or an interview without going quiet when it gets concrete. Want to share it? (optional)'
+      : '80% to pass — revise the cards behind the questions you missed and retake. No pressure to share.'));
+    var text = 'I completed AI 101 for PMs — ' + correct + '/' + total + ' on the final assessment 🎓 ' + SITE_URL;
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.readOnly = true;
+    ta.style.cssText = 'width:100%;min-height:60px;border:1px solid var(--line);border-radius:8px;padding:10px;font-size:14px;font-family:inherit';
+    var row = el('div','btn-row');
+    var copy = el('button','btn','Copy share text');
+    copy.onclick = function(){
+      ta.select();
+      try { document.execCommand('copy'); copy.textContent = 'Copied ✓'; }
+      catch(e){ copy.textContent = 'Select & copy manually'; }
+    };
+    var retake2 = el('button','btn alt','↻ Retake'); retake2.onclick = start;
+    row.appendChild(copy); row.appendChild(retake2);
+    wrap.appendChild(ta); wrap.appendChild(row);
+    box.appendChild(wrap);
+  }
+
+  document.getElementById('start').onclick = start;
+  document.getElementById('retake').onclick = start;
+</script>
+</body>
+</html>

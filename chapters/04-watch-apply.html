@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){try{var t=localStorage.getItem("ai101.theme")||"dark";document.documentElement.setAttribute("data-theme",t);}catch(e){document.documentElement.setAttribute("data-theme","dark");}})();</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chapter 4 · Watch &amp; Apply — AI 101 for PMs</title>
+<meta name="description" content="Watch & Apply — two recommended deep-dive videos (Karpathy's Intro to LLMs and Stanford CS229's Building LLMs) plus a capstone synthesis and a 10-question cross-chapter self-check for product managers.">
+<link rel="stylesheet" href="../assets/css/main.css">
+</head>
+<body class="ch4">
+
+<header class="top w4">
+  <div class="hero">
+  <div class="kicker">AI 101 for PMs · Chapter 4</div>
+  <h1>Watch &amp; Apply</h1>
+  <p>You've built the mental model across three chapters. Now hear it from the people who build these systems — two carefully chosen videos — and then prove the model sticks with a cross-chapter capstone.</p>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="toc">
+    <h4>This chapter</h4>
+    <div id="toc"></div>
+  </nav>
+
+  <main>
+    <div id="progress"></div>
+
+    <section class="intro">
+      <h2>Why this chapter matters for PMs</h2>
+      <p>The first three chapters gave you a working mental model of the whole stack: how a model <b>learns</b> (Chapter 1), how a deployed LLM <b>generates</b> (Chapter 2), and how you <b>evaluate, secure, and cost</b> it (Chapter 3). You can already name the lever behind most failures.</p>
+      <p>This chapter does two things. First, it hands you two of the best explanations available — one for the intuition, one for the build details — so you hear the same ideas from practitioners who train these systems, in their own words. You'll recognise nearly everything; that recognition is the point. Second, the capstone forces the model to consolidate: a single synthesis paragraph that names the throughline explicitly, then a ten-question cross-chapter check that proves it sticks under pressure rather than only feeling familiar in a demo.</p>
+      <p class="swap-hint">Heads up: the two videos below are embedded from YouTube, so they need a network connection — that's the <b>only</b> online dependency on this entire site. Everything else, including the capstone quiz and your saved progress, works fully offline.</p>
+    </section>
+
+    <section id="video-karpathy" class="lesson">
+      <div class="lhead">
+        <div class="num">1</div>
+        <h3>Andrej Karpathy — Intro to Large Language Models</h3>
+      </div>
+      <div class="core"><b>~60 min · general audience · Nov 2023.</b> The best single hour for turning the LLM black box into an intuition you can carry into any meeting.</div>
+      <div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:10px;margin:14px 0">
+        <iframe style="position:absolute;top:0;left:0;width:100%;height:100%;border:0"
+                src="https://www.youtube.com/embed/zjkBMFhNj_g"
+                title="Andrej Karpathy — Intro to Large Language Models"
+                loading="lazy"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                referrerpolicy="strict-origin-when-cross-origin"
+                allowfullscreen></iframe>
+      </div>
+      <p class="hint">Player not loading? <a href="https://www.youtube.com/watch?v=zjkBMFhNj_g" target="_blank" rel="noopener">Watch on YouTube ↗</a> — embeds need a real web origin, so they play once the site is served (e.g. GitHub Pages) but may stay blank when opened straight from a local file.</p>
+      <p><b>What to watch for.</b> Karpathy frames an LLM as essentially two files — the parameters and the code that runs them — which is Chapter 1's "a model is just learned weights" said out loud. Listen for how he separates pre-training (the costly one-time run) from the fine-tuning that makes a model an assistant: that's Chapter 3's alignment story, and the "two stages" he describes map cleanly onto why inference, not training, is the bill you pay forever. When he reaches hallucination and tool use, you'll hear Chapter 2 almost verbatim.</p>
+      <div class="takeaway"><b>PM takeaway:</b> if you only ever recommend one video to a colleague who "wants to get AI," this is it — it builds the same end-to-end intuition this course did, in a single sitting.</div>
+    </section>
+
+    <section id="video-cs229" class="lesson">
+      <div class="lhead">
+        <div class="num">2</div>
+        <h3>Stanford CS229 — Building Large Language Models</h3>
+      </div>
+      <div class="core"><b>~90 min · intermediate · deeper and more technical.</b> A graduate-lecture walk through how these models are actually built, from data to architecture to evaluation.</div>
+      <div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:10px;margin:14px 0">
+        <iframe style="position:absolute;top:0;left:0;width:100%;height:100%;border:0"
+                src="https://www.youtube.com/embed/9vM4p9NN0Ts"
+                title="Stanford CS229 — Building Large Language Models"
+                loading="lazy"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                referrerpolicy="strict-origin-when-cross-origin"
+                allowfullscreen></iframe>
+      </div>
+      <p class="hint">Player not loading? <a href="https://www.youtube.com/watch?v=9vM4p9NN0Ts" target="_blank" rel="noopener">Watch on YouTube ↗</a> — embeds need a real web origin, so they play once the site is served (e.g. GitHub Pages) but may stay blank when opened straight from a local file.</p>
+      <p><b>What to watch for.</b> This one goes a level deeper than you strictly need as a PM — expect some math notation and training-loop detail — so treat it as optional enrichment, not a prerequisite. The payoff is the evaluation section: it makes the Chapter 3 case rigorously, that benchmarks are a starting filter and not a launch criterion, and that how you measure a model is as much a design choice as the model itself. If the first video gave you the intuition, this one shows you the machinery behind every term you've learned.</p>
+      <div class="takeaway"><b>PM takeaway:</b> watch it once for breadth, not mastery — the goal is to recognise the moving parts so a vendor or an engineer can never hide a decision behind jargon you don't understand.</div>
+    </section>
+
+    <section id="capstone" class="intro">
+      <h2>Capstone — the one idea, at every layer</h2>
+      <p>The spine of this entire course, in one sentence: <b>never trust a single number until you know what it was measured against, at every layer of the stack.</b> It is not three separate lessons — it is one lesson seen three times, climbing the stack:</p>
+      <ul>
+        <li><b>Chapter 1 — DATA.</b> The number to distrust is accuracy. The question that exposes it is <em>"validation or training accuracy?"</em> A model that aced its training data may have memorised it; only data it was deliberately never shown tells you whether it learned the real pattern.</li>
+        <li><b>Chapter 2 — GENERATION.</b> The number to distrust is the model's fluent confidence. The question that exposes it is <em>"was this grounded in retrieved evidence, or recalled from memory?"</em> When a RAG feature is wrong, the first suspect is retrieval quality, not model fluency.</li>
+        <li><b>Chapter 3 — EVALUATION.</b> The number to distrust is a single headline benchmark. The question that exposes it is <em>"measured by the full harness on our own data, or one public benchmark?"</em> The moment a metric becomes the target, Goodhart's Law says it starts lying to you.</li>
+      </ul>
+      <p>Tokenisation, attention, gradient descent, embeddings, alignment, the environmental footprint — every concept in this course is a mechanism that explains <em>why</em> one of those three holds. If you finish able to do just one thing reflexively — ask what a number was measured against before you act on it — you will outperform most people in the room who only know the vocabulary.</p>
+    </section>
+
+    <section id="capstone-quiz" class="quiz">
+      <h2>Capstone self-check — 10 cross-chapter questions</h2>
+      <p>These ten questions deliberately mix all three chapters in no fixed order — exactly how the ideas show up in a real launch review. Score 80% or higher to mark this chapter complete; miss any and you'll get deeplinks straight back to the right card to revise.</p>
+      <div id="capstone-mount"></div>
+    </section>
+
+    <div class="btn-row">
+      <a class="btn alt" href="03-evals-safety-cost.html">← Prev: Chapter 3</a>
+      <a class="btn" href="../assess.html">Take the final assessment →</a>
+      <a class="btn alt" href="../revise.html">Revise</a>
+    </div>
+  </main>
+</div>
+
+<footer>
+  AI 101 for PMs · An offline, interactive field guide. Progress is stored only in your browser. The two videos above are the only feature that needs a network.
+</footer>
+
+<script src="../assets/js/concepts.js"></script>
+<script src="../assets/js/progress.js"></script>
+<script src="../assets/js/helpers.js"></script>
+
+<script>
+/* ---------- build: nav, progress, TOC, capstone quiz ---------- */
+Nav.mount({ here:'ch4', base:'../' });
+Progress.renderBar(document.getElementById('progress'));
+
+/* small TOC: Videos + Capstone */
+(function(){
+  var toc = document.getElementById('toc');
+  var items = [
+    ['video-karpathy', '1. Karpathy — Intro to LLMs'],
+    ['video-cs229',    '2. Stanford — Building LLMs'],
+    ['capstone',       'Capstone synthesis'],
+    ['capstone-quiz',  'Capstone self-check']
+  ];
+  var links = {};
+  items.forEach(function(it){
+    var a = el('a', null, it[1]);
+    a.href = '#' + it[0];
+    toc.appendChild(a);
+    links[it[0]] = a;
+  });
+  if('IntersectionObserver' in window){
+    var obs = new IntersectionObserver(function(es){
+      es.forEach(function(e){
+        if(e.isIntersecting){
+          [].forEach.call(toc.querySelectorAll('a'), function(a){ a.classList.remove('active'); });
+          var lk = links[e.target.id]; if(lk) lk.classList.add('active');
+        }
+      });
+    }, { rootMargin:'-20% 0px -70% 0px' });
+    items.forEach(function(it){ var n = document.getElementById(it[0]); if(n) obs.observe(n); });
+  }
+})();
+
+/* ---------- 10 fresh, mixed cross-chapter questions ----------
+   Each is tagged with its source concept id + title so a missed
+   answer deeplinks back to the exact revise card. */
+var CAPSTONE_QS = [
+  {
+    q: `A team shows a "96% accurate" delivery-ETA model and asks for sign-off. Of these, the question that best protects the launch is:`,
+    options: [
+      `"Can we get it to 98%?"`,
+      `"Is that training accuracy or validation accuracy?"`,
+      `"How many parameters does it have?"`,
+      `"Which cloud region trains it?"`
+    ],
+    correctIndex: 1,
+    explanation: `A headline accuracy on data the model trained on can be pure memorisation; only validation accuracy says whether it learned the real pattern.`,
+    conceptId: 'overfitting', conceptTitle: 'Overfitting'
+  },
+  {
+    q: `Your RAG-based support bot confidently gives a wrong refund policy. Where should you debug first?`,
+    options: [
+      `Swap in a larger, more capable LLM`,
+      `Check whether retrieval fetched the right policy chunks before blaming the model`,
+      `Lower the temperature to 0`,
+      `Expand the context window so more fits`
+    ],
+    correctIndex: 1,
+    explanation: `Most RAG failures are retrieval failures — the model only ever answers from the chunks it was actually handed.`,
+    conceptId: 'rag', conceptTitle: 'RAG — retrieval-augmented generation'
+  },
+  {
+    q: `A vendor's model just topped a popular public reasoning benchmark. The right conclusion is:`,
+    options: [
+      `It will be the best model for our feature, ship it`,
+      `Worth shortlisting, but we must eval it on our own data before deciding`,
+      `Benchmarks are meaningless, ignore the result`,
+      `We should retrain our product to win that same benchmark`
+    ],
+    correctIndex: 1,
+    explanation: `Benchmark leakage and Goodhart's Law mean a top public score is a hypothesis about capability, not proof of fit on your use case.`,
+    conceptId: 'benchmarks-goodhart', conceptTitle: "Benchmarks & Goodhart's Law"
+  },
+  {
+    q: `Users complain a factual-extraction feature "gives a different answer every time." The most likely cause is:`,
+    options: [
+      `The model is fundamentally broken`,
+      `Temperature is set above 0 for a task that needs determinism`,
+      `The context window is too small`,
+      `Retrieval is returning too many chunks`
+    ],
+    correctIndex: 1,
+    explanation: `Temperature trades consistency for variety; factual, extraction, and code tasks should run at low temperature.`,
+    conceptId: 'temperature-sampling', conceptTitle: 'Temperature & sampling'
+  },
+  {
+    q: `The validation-loss curve for a training run bottoms out at epoch 12 and starts creeping up, while training loss keeps falling to epoch 40. Which checkpoint should ship?`,
+    options: [
+      `Epoch 40 — it has the lowest training loss`,
+      `Epoch 12 — the minimum validation loss, where early stopping fires`,
+      `Epoch 26 — a compromise in the middle`,
+      `Whichever epoch finished fastest`
+    ],
+    correctIndex: 1,
+    explanation: `Training past minimum validation loss buys training accuracy at the cost of generalisation; early stopping ships the best-val checkpoint.`,
+    conceptId: 'early-stopping', conceptTitle: 'Early stopping'
+  },
+  {
+    q: `Your assistant keeps miscounting the letters in product names like "strawberry." The correct fix is:`,
+    options: [
+      `Add training examples with the words spelled out`,
+      `Give it a tool to run code that iterates over the characters`,
+      `Switch to a much larger model`,
+      `Raise the temperature so it explores more`
+    ],
+    correctIndex: 1,
+    explanation: `The failure is architectural — the model sees tokens, never individual letters — so the fix is tool use, not more training.`,
+    conceptId: 'tool-calling', conceptTitle: 'Tool calling'
+  },
+  {
+    q: `A summarisation feature feels slow. You measure that prompt length barely affects total time, but longer answers take much longer. The cheapest win for perceived speed is:`,
+    options: [
+      `Aggressively trim the input prompt`,
+      `Stream tokens as they're produced and trim the output length`,
+      `Buy faster storage for the vector database`,
+      `Increase the context window`
+    ],
+    correctIndex: 1,
+    explanation: `Latency scales with output tokens because generation is autoregressive; streaming doesn't cut total time but feels far faster than a spinner.`,
+    conceptId: 'output-latency', conceptTitle: 'Output latency'
+  },
+  {
+    q: `Your support bot was tuned hard for "tickets closed per hour." Resolution quality is quietly dropping while the metric climbs. This is a textbook case of:`,
+    options: [
+      `Distribution shift in the customer base`,
+      `Goodhart's Law — the metric became the target and stopped measuring the real goal`,
+      `An over-aggressive learning rate`,
+      `A context window that's too large`
+    ],
+    correctIndex: 1,
+    explanation: `When a measure becomes a target it ceases to be a good measure; a single optimised metric needs a guardrail metric beside it.`,
+    conceptId: 'benchmarks-goodhart', conceptTitle: "Benchmarks & Goodhart's Law"
+  },
+  {
+    q: `A PM wants the most powerful model serving every "where is my order?" query to be safe. The single biggest lever over cost, latency, and environmental footprint is to instead:`,
+    options: [
+      `Pick a greener accent colour for the UI`,
+      `Right-size the model to the task — route trivial queries to a small model`,
+      `Train the model a second time on more data`,
+      `Increase the context window so fewer calls are needed`
+    ],
+    correctIndex: 1,
+    explanation: `Tokens are the shared currency of money, milliseconds, and emissions, so right-sizing the model to the task moves all three at once.`,
+    conceptId: 'environmental-impact', conceptTitle: 'Environmental impact of LLMs at scale'
+  },
+  {
+    q: `You have a good eval set but you only run it by hand when someone remembers. What does wiring it into a harness add?`,
+    options: [
+      `It makes the underlying model more accurate`,
+      `It runs the evals automatically on every change, catching regressions before users do`,
+      `It lowers per-token inference cost`,
+      `It writes new eval cases for you`
+    ],
+    correctIndex: 1,
+    explanation: `The eval is the questions; the harness is the test runner that scores the full pipeline on every change so a fix that breaks five other cases gets caught.`,
+    conceptId: 'harness', conceptTitle: 'Harness'
+  }
+];
+
+renderQuiz(document.getElementById('capstone-mount'), CAPSTONE_QS, { passPct:80, reviewBase:'../', chapter:4 });
+</script>
+
+</body>
+</html>

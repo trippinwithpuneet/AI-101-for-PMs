@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){try{var t=localStorage.getItem("ai101.theme")||"dark";document.documentElement.setAttribute("data-theme",t);}catch(e){document.documentElement.setAttribute("data-theme","dark");}})();</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chapter 3 · Evals, Safety &amp; Cost — AI 101 for PMs</title>
+<link rel="stylesheet" href="../assets/css/main.css">
+</head>
+<body class="ch3">
+
+<header class="top w3">
+  <div class="hero">
+  <div class="kicker">AI 101 for PMs · Chapter 3</div>
+  <h1>Evals, Safety &amp; Cost</h1>
+  <p>How you measure an AI feature, keep it safe, and pay for it — the evaluation layer where a single number is never the whole story.</p>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="toc" id="toc">
+    <h4>This chapter</h4>
+  </nav>
+
+  <main>
+    <div id="progress"></div>
+
+    <div class="intro">
+      <h2>Why this chapter matters</h2>
+      <p>Chapters 1 and 2 gave you the machinery: how models learn, and how LLMs turn text into tokens and tokens back into answers. This chapter is about the layer that decides whether any of it is good enough to ship — <b>evaluation</b> — plus the two forces that bound every real launch: <b>safety</b> and <b>cost</b>.</p>
+      <p>The throughline of the whole course shows up here in its sharpest form: <b>never trust a single number until you know what it was measured against.</b> An accuracy figure, a benchmark win, a "it felt better in the demo" — each is a hypothesis, not proof. The eval harness on <em>your own data</em> is how a hypothesis becomes evidence.</p>
+      <p class="swap-hint">Each concept has a live widget — drag, toggle, and step through it. The interaction <em>is</em> the lesson; the prose just frames it.</p>
+    </div>
+
+    <div id="cards"></div>
+
+    <div id="summary" class="intro">
+      <h2>The throughline</h2>
+      <p><b>Never trust a single number until you know what it was measured against — at every layer of the stack.</b> Chapter 1 made that point about the data split; Chapter 2 about token counts and context. Here it lands on the <b>evaluation layer</b>.</p>
+      <p>A public benchmark score is a <em>hypothesis</em> about capability, not proof of product fit. The proof is the full eval harness on your own data: a held-out set that looks like production, scored automatically on every change, with safety treated as a ship-blocking dimension and cost measured in the same currency as latency and carbon — tokens. Right-size the model, ground the answers, set the refusal boundary deliberately, and wire it all into a harness so a regression can't slip past while everyone is admiring the headline number.</p>
+    </div>
+
+    <div class="quiz">
+      <h2>Chapter 3 quiz</h2>
+      <p class="hint">Answer all five — 80% to mark the chapter complete. Wrong answers link back to the exact card to revise.</p>
+      <div id="quiz-mount"></div>
+    </div>
+
+    <div class="btn-row">
+      <a class="btn alt" href="02-how-llms-work.html">← Chapter 2: How LLMs work</a>
+      <a class="btn" href="04-watch-apply.html">Chapter 4: Watch &amp; apply →</a>
+      <a class="btn alt" href="../revise.html">Revise concepts</a>
+    </div>
+  </main>
+</div>
+
+<footer>
+  AI 101 for PMs — an offline, interactive field guide. Progress is stored only in your browser.
+</footer>
+
+<script src="../assets/js/concepts.js"></script>
+<script src="../assets/js/progress.js"></script>
+<script src="../assets/js/helpers.js"></script>
+
+<script>
+/* ---------- build the page from concepts.js ---------- */
+Nav.mount({here:'ch3', base:'../'});
+Progress.renderBar(document.getElementById('progress'));
+var __list = buildChapter(3, document.getElementById('cards'));
+
+/* build #toc links from the concept list */
+(function(){
+  var toc = document.getElementById('toc');
+  __list.forEach(function(c){
+    var a = el('a', null, c.order + '. ' + c.title.replace(/&amp;/g,'&'));
+    a.href = '#' + c.id;
+    toc.appendChild(a);
+  });
+})();
+
+renderQuiz(document.getElementById('quiz-mount'), chapterQuestions(3),
+  {chapter:3, reviewBase:'../', passPct:80});
+</script>
+
+<script>
+/* ============================================================
+   Chapter 3 widgets — five fresh interactives, same style as
+   the field-notes canvas widgets (gridlines in C.grid, labels
+   in C.muted, primary series in C.accent — amber this chapter).
+   Each IIFE guards on its mount existing, so order is safe.
+   ============================================================ */
+
+/* ---------- 1. evals — held-out cases tighten the confidence band ---------- */
+(function(){
+  var m = document.getElementById('evals-mount'); if(!m) return;
+  var N = 5;
+  var d = cv(m, 560, 230);
+  slider(m, 'Held-out eval cases', 5, 500, N, 1, function(v){ N=v; draw(); });
+  var t = el('div','readout',''); t.style.marginTop='10px'; m.appendChild(t);
+
+  var TRUE = 78; // the model's real accuracy, in %
+  function halfBand(n){
+    // CI half-width ~ 1/sqrt(N), scaled so N=5 ~ ±22.5pts (50-95 band), N=500 ~ ±3pts (75-81 band)
+    return Math.max(3, 50/Math.sqrt(n));
+  }
+  function draw(){
+    var x=d.x, w=d.w, h=d.h; x.clearRect(0,0,w,h);
+    var L=54, R=w-24, T=24, B=h-40;
+    function Y(p){ return B - (p/100)*(B-T); } // p is 0..100
+    // gridlines + axis labels (every 25%)
+    x.strokeStyle=C.grid; x.lineWidth=1; x.font='11px sans-serif'; x.fillStyle=C.muted;
+    for(var p=0;p<=100;p+=25){
+      var yy=Y(p); x.beginPath(); x.moveTo(L,yy); x.lineTo(R,yy); x.stroke();
+      x.textAlign='right'; x.fillText(p+'%', L-8, yy+4);
+    }
+    x.textAlign='left'; x.fillText('estimated accuracy', L, T-8);
+
+    var hb = halfBand(N);
+    var lo = Math.max(0, TRUE-hb), hi = Math.min(100, TRUE+hb);
+    var bx = L+70, bw = 150;
+    // confidence band (shaded)
+    x.fillStyle = 'rgba(251,191,36,.16)';
+    x.fillRect(bx-30, Y(hi), bw+60, Y(lo)-Y(hi));
+    // the accuracy bar itself
+    x.fillStyle = C.accent;
+    x.fillRect(bx, Y(TRUE), bw, B-Y(TRUE));
+    // error bar (whisker)
+    x.strokeStyle = C.ink; x.lineWidth=2;
+    var cx = bx+bw/2;
+    x.beginPath(); x.moveTo(cx, Y(hi)); x.lineTo(cx, Y(lo)); x.stroke();
+    x.beginPath(); x.moveTo(cx-14, Y(hi)); x.lineTo(cx+14, Y(hi)); x.stroke();
+    x.beginPath(); x.moveTo(cx-14, Y(lo)); x.lineTo(cx+14, Y(lo)); x.stroke();
+    // point label
+    x.fillStyle=C.ink; x.font='bold 13px sans-serif'; x.textAlign='center';
+    x.fillText('~'+TRUE+'%', cx, Y(TRUE)-8);
+    x.font='11px sans-serif'; x.fillStyle=C.muted;
+    x.fillText(lo.toFixed(0)+'–'+hi.toFixed(0)+'% band', cx, B+16);
+    x.textAlign='left';
+
+    var span = (hi-lo).toFixed(0);
+    if(N <= 12){
+      t.innerHTML = '<b>'+N+' cases · band spans '+lo.toFixed(0)+'–'+hi.toFixed(0)+'% ('+span+' pts wide).</b> '+
+        'This sample <b style="color:'+C.red+'">cannot tell a good model from a mediocre one</b> — a "vibe check" is statistical noise.';
+    } else if(N < 120){
+      t.innerHTML = '<b>'+N+' cases · band '+lo.toFixed(0)+'–'+hi.toFixed(0)+'% ('+span+' pts).</b> '+
+        'Getting usable — you can rank models, but small gains still hide inside the band.';
+    } else {
+      t.innerHTML = '<b>'+N+' cases · band tightens to '+lo.toFixed(0)+'–'+hi.toFixed(0)+'% ('+span+' pts).</b> '+
+        '<b style="color:'+C.green+'">Now a 3–4 point change is real signal, not noise.</b> Band width shrinks like 1/√N — that’s why eval size matters.';
+    }
+  }
+  draw();
+})();
+
+/* ---------- 2. goodhart — optimise the metric, watch the goal drift ---------- */
+(function(){
+  var m = document.getElementById('goodhart-mount'); if(!m) return;
+  var opt = 0; // 0..100, how hard you optimise for the benchmark
+  var d = cv(m, 560, 250);
+  slider(m, 'Optimise for the benchmark', 0, 100, opt, 1, function(v){ opt=v; draw(); });
+  var t = el('div','readout',''); t.style.marginTop='10px'; m.appendChild(t);
+
+  // benchmark rises monotonically toward 100; true quality rises then falls (peaks ~40)
+  function bench(o){ return 100*(1 - Math.exp(-o/28)); }
+  function quality(o){ var peak=40; return 38 + 46*Math.exp(-Math.pow((o-peak)/34,2)) - (o>peak ? 0.22*(o-peak) : 0); }
+
+  function draw(){
+    var x=d.x, w=d.w, h=d.h; x.clearRect(0,0,w,h);
+    var L=50, R=w-20, T=22, B=h-38;
+    function X(o){ return L + (o/100)*(R-L); }
+    function Y(v){ return B - (v/100)*(B-T); }
+    // gridlines
+    x.strokeStyle=C.grid; x.lineWidth=1; x.font='11px sans-serif'; x.fillStyle=C.muted;
+    for(var g=0;g<=100;g+=25){ var yy=Y(g); x.beginPath(); x.moveTo(L,yy); x.lineTo(R,yy); x.stroke();
+      x.textAlign='right'; x.fillText(g, L-6, yy+4); }
+    x.textAlign='center'; x.fillText('→ effort optimising for the benchmark', (L+R)/2, B+26);
+
+    // shade the gap up to the current optimisation point
+    var step=2;
+    x.fillStyle='rgba(244,114,182,.16)';
+    x.beginPath(); var started=false;
+    for(var o=0;o<=opt;o+=step){ var px=X(o), py=Y(bench(o)); if(!started){x.moveTo(px,py);started=true;} else x.lineTo(px,py); }
+    for(var o2=opt;o2>=0;o2-=step){ x.lineTo(X(o2), Y(quality(o2))); }
+    x.closePath(); x.fill();
+
+    function line(fn,color){ x.strokeStyle=color; x.lineWidth=3; x.beginPath();
+      for(var o=0;o<=opt;o+=step){ var px=X(o),py=Y(fn(o)); if(o===0)x.moveTo(px,py); else x.lineTo(px,py);} x.stroke();
+      // dot at current end
+      x.fillStyle=color; x.beginPath(); x.arc(X(opt), Y(fn(opt)), 4, 0, 7); x.fill();
+    }
+    line(quality, C.green);
+    line(bench, C.accent);
+
+    // legend
+    x.font='12px sans-serif';
+    x.fillStyle=C.accent; x.fillText('— benchmark score', L+4, T+2);
+    x.fillStyle=C.green;  x.fillText('— true product quality', L+150, T+2);
+
+    var b=bench(opt), q=quality(opt), gap=b-q;
+    if(opt < 12){
+      t.innerHTML='<b>Both still climbing.</b> Early optimisation genuinely helps — the metric and the product improve together.';
+    } else if(q >= quality(opt-1) - 0.05 || opt < 46){
+      t.innerHTML='Benchmark <b style="color:'+C.accent+'">'+b.toFixed(0)+'</b> · quality <b style="color:'+C.green+'">'+q.toFixed(0)+'</b>. Near the sweet spot — push further and quality will turn.';
+    } else {
+      t.innerHTML='Benchmark <b style="color:'+C.accent+'">'+b.toFixed(0)+'</b> · quality <b style="color:'+C.green+'">'+q.toFixed(0)+'</b> · gap <b style="color:'+C.red+'">'+gap.toFixed(0)+' pts</b>. '+
+        '<b style="color:'+C.red+'">Metric up, product down — that gap is Goodhart’s Law.</b>';
+    }
+  }
+  draw();
+})();
+
+/* ---------- 3. harness — step a batch through the eval pipeline ---------- */
+(function(){
+  var m = document.getElementById('harness-mount'); if(!m) return;
+  var STAGES = ['retrieve','generate','score','report'];
+  var step = 0;          // 0 = nothing lit; 1..4 = stages lit
+  var promptChange = false;
+
+  var d = cv(m, 560, 150);
+  var row = el('div','ctrl');
+  var bNext = el('button','btn','Next step →');
+  var bReset = el('button','btn alt','Reset');
+  row.appendChild(bNext); row.appendChild(bReset); m.appendChild(row);
+
+  // toggle for prompt change
+  var trow = el('div','ctrl');
+  var bTog = el('button','btn alt','Introduce prompt change: OFF');
+  bTog.onclick = function(){ promptChange=!promptChange;
+    bTog.textContent='Introduce prompt change: '+(promptChange?'ON':'OFF');
+    bTog.style.background = promptChange ? C.amber : '';
+    bTog.style.color = promptChange ? '#0f0d17' : '';
+    draw(); };
+  trow.appendChild(bTog); m.appendChild(trow);
+
+  var t = el('div','readout',''); t.style.marginTop='10px'; m.appendChild(t);
+
+  bNext.onclick = function(){ step = (step>=4) ? 4 : step+1; draw(); };
+  bReset.onclick = function(){ step = 0; draw(); };
+
+  function draw(){
+    var x=d.x, w=d.w, h=d.h; x.clearRect(0,0,w,h);
+    var n=STAGES.length, gap=14, pad=18;
+    var bw=(w-pad*2-gap*(n-1))/n, bh=64, by=44;
+    for(var i=0;i<n;i++){
+      var bx=pad + i*(bw+gap);
+      var lit = (i < step);
+      var isReport = (i===3);
+      var fill=C.panel, stroke=C.grid, label=C.muted;
+      if(lit){
+        if(isReport && promptChange){ fill='rgba(244,114,182,.18)'; stroke=C.red; label=C.red; }
+        else if(isReport){ fill='rgba(52,211,153,.18)'; stroke=C.green; label=C.green; }
+        else { fill=C.accent+'2b'; stroke=C.accent; label=C.accent; }
+      }
+      x.fillStyle=fill; x.strokeStyle=stroke; x.lineWidth=lit?2.5:1;
+      x.beginPath();
+      if(x.roundRect) x.roundRect(bx,by,bw,bh,10); else x.rect(bx,by,bw,bh);
+      x.fill(); x.stroke();
+      x.fillStyle=lit?label:C.muted; x.font='bold 13px sans-serif'; x.textAlign='center';
+      x.fillText(STAGES[i], bx+bw/2, by+bh/2+1);
+      x.font='11px sans-serif'; x.fillStyle=C.muted;
+      x.fillText((i+1), bx+bw/2, by+bh/2+18);
+      // arrow between boxes
+      if(i<n-1){ x.strokeStyle=(i+1<step)?C.accent:C.grid; x.lineWidth=2;
+        var ax=bx+bw, ay=by+bh/2; x.beginPath(); x.moveTo(ax+2,ay); x.lineTo(ax+gap-2,ay); x.stroke();
+        x.beginPath(); x.moveTo(ax+gap-2,ay); x.lineTo(ax+gap-7,ay-4); x.lineTo(ax+gap-7,ay+4); x.closePath(); x.fillStyle=(i+1<step)?C.accent:C.grid; x.fill(); }
+    }
+    x.textAlign='left'; x.fillStyle=C.muted; x.font='11px sans-serif';
+    x.fillText('a batch of saved eval cases flows left → right', pad, 26);
+
+    if(step===0){ t.innerHTML='Press <b>Next step</b> to run a batch of eval cases through the harness — the same test, the same way, every time.'; }
+    else if(step<4){ t.innerHTML='Stage <b>'+step+'/4</b> — <b style="color:'+C.accent+'">'+STAGES[step-1]+'</b> running. The harness drives the <em>whole</em> pipeline, not just the model.'; }
+    else if(promptChange){ t.innerHTML='<b style="color:'+C.red+'">⛔ Regression caught: score 86 → 82.</b> A prompt tweak fixed one case but broke others — the harness blocks the merge <b>before</b> users feel it.'; }
+    else { t.innerHTML='<b style="color:'+C.green+'">✅ Pass: score 86.</b> No regression. Wired into CI, this run gates every change automatically — that’s what makes "we measure quality" a process, not a good intention.'; }
+  }
+  draw();
+})();
+
+/* ---------- 4. alignment — over-refusal ↔ jailbreak trade-off ---------- */
+(function(){
+  var m = document.getElementById('alignment-mount'); if(!m) return;
+  var thr = 50; // safety threshold 0..100 — everything to its right is refused
+  var d = cv(m, 560, 240);
+  slider(m, 'Safety threshold', 0, 100, thr, 1, function(v){ thr=v; draw(); });
+  var t = el('div','readout',''); t.style.marginTop='10px'; m.appendChild(t);
+
+  // two distributions over a 0..100 "request risk" axis.
+  // legitimate requests cluster low (~30); harmful requests cluster high (~70).
+  function g(v, mu, sd){ return Math.exp(-0.5*Math.pow((v-mu)/sd,2)); }
+  function legit(v){ return g(v, 32, 15); }
+  function harm(v){  return g(v, 70, 14); }
+
+  function area(fn, from, to){ var s=0; for(var v=from; v<=to; v+=0.5){ s+=fn(v); } return s; }
+  var LEGIT_TOTAL = area(legit, 0, 100);
+  var HARM_TOTAL  = area(harm, 0, 100);
+
+  function draw(){
+    var x=d.x, w=d.w, h=d.h; x.clearRect(0,0,w,h);
+    var L=40, R=w-20, T=24, B=h-40, peak=170;
+    function X(v){ return L + (v/100)*(R-L); }
+    function Y(p){ return B - p*peak; }
+    // baseline + gridlines
+    x.strokeStyle=C.grid; x.lineWidth=1;
+    x.beginPath(); x.moveTo(L,B); x.lineTo(R,B); x.stroke();
+
+    function curve(fn, fill, stroke){
+      x.beginPath(); var first=true;
+      for(var v=0; v<=100; v+=0.5){ var px=X(v), py=Y(fn(v));
+        if(first){ x.moveTo(px,B); x.lineTo(px,py); first=false; } else x.lineTo(px,py); }
+      x.lineTo(X(100), B); x.closePath();
+      x.fillStyle=fill; x.fill(); x.strokeStyle=stroke; x.lineWidth=2; x.stroke();
+    }
+    curve(legit, 'rgba(52,211,153,.18)', C.green);   // legitimate (allow)
+    curve(harm,  'rgba(244,114,182,.18)', C.red);     // harmful (refuse)
+
+    // threshold line — everything to the RIGHT is refused
+    var tx = X(thr);
+    x.fillStyle='rgba(251,191,36,.10)'; x.fillRect(tx, T-4, R-tx, B-(T-4));
+    x.strokeStyle=C.accent; x.lineWidth=2.5; x.setLineDash([6,4]);
+    x.beginPath(); x.moveTo(tx, T-4); x.lineTo(tx, B); x.stroke(); x.setLineDash([]);
+
+    // labels
+    x.font='12px sans-serif'; x.textAlign='left';
+    x.fillStyle=C.green; x.fillText('legitimate (allow)', L+4, T+2);
+    x.fillStyle=C.red;   x.fillText('harmful (refuse)', R-130, T+2);
+    x.fillStyle=C.accent; x.font='bold 11px sans-serif'; x.textAlign='center';
+    x.fillText('refuse →', tx+44, B+24);
+    x.fillStyle=C.muted; x.font='11px sans-serif';
+    x.fillText('← allow', tx-40, B+24);
+    x.textAlign='left';
+
+    // metrics: % harmful blocked (harm area right of thr), % legit wrongly refused (legit area right of thr)
+    var harmBlocked = 100 * area(harm, thr, 100) / HARM_TOTAL;
+    var legitRefused = 100 * area(legit, thr, 100) / LEGIT_TOTAL;
+
+    var verdict, col;
+    if(thr <= 30){ verdict='<b style="color:'+C.red+'">Under-refusal / jailbreak risk</b> — almost nothing is blocked; harmful requests sail through.'; col=C.red; }
+    else if(thr >= 75){ verdict='<b style="color:'+C.red+'">Over-refusal / useless</b> — you block harm, but also refuse the legitimate users the product exists for.'; col=C.red; }
+    else { verdict='<b style="color:'+C.green+'">Calibrated middle</b> — most harm blocked, most legitimate requests allowed. This is the shippable boundary.'; col=C.green; }
+
+    t.innerHTML = 'Harmful blocked: <b style="color:'+C.red+'">'+harmBlocked.toFixed(0)+'%</b> &nbsp;·&nbsp; '+
+      'Legitimate wrongly refused: <b style="color:'+C.green+'">'+legitRefused.toFixed(0)+'%</b><br>'+verdict;
+  }
+  draw();
+})();
+
+/* ---------- 5. envimpact — tokens × requests → energy, cost, latency ---------- */
+(function(){
+  var m = document.getElementById('envimpact-mount'); if(!m) return;
+  var reqs = 100000;   // daily requests (1k .. 10M, log slider)
+  var outTok = 300;    // avg output tokens (20 .. 2000)
+  var size = 1;        // 0 Small, 1 Medium, 2 Large
+
+  // illustrative per-token energy (Wh/token), cost (relative $/token), and speed (tokens/sec)
+  var MODELS = [
+    {name:'Small',  whPerTok:0.0006, costPerTok:0.0000004, tps:140},
+    {name:'Medium', whPerTok:0.0022, costPerTok:0.0000020, tps:75},
+    {name:'Large',  whPerTok:0.0090, costPerTok:0.0000090, tps:38}
+  ];
+
+  tabs(m, ['Small','Medium','Large'], function(i){ size=i; draw(); });
+  // log-feel request slider via exponent 3..7  (10^3 = 1k, 10^7 = 10M)
+  var rExp = Math.log10(reqs);
+  var rSlider = slider(m, 'Daily requests', 3, 7, rExp, 0.01, function(v){ reqs = Math.round(Math.pow(10, v)); draw(); });
+  slider(m, 'Avg output tokens', 20, 2000, outTok, 10, function(v){ outTok=v; draw(); });
+  var t = el('div','readout',''); t.style.marginTop='10px'; m.appendChild(t);
+
+  function fmt(n){
+    if(n>=1e9) return (n/1e9).toFixed(1)+'B';
+    if(n>=1e6) return (n/1e6).toFixed(1)+'M';
+    if(n>=1e3) return (n/1e3).toFixed(1)+'k';
+    return n.toFixed(0);
+  }
+  function draw(){
+    var md = MODELS[size];
+    var totalTok = reqs * outTok;
+    var kWh = totalTok * md.whPerTok / 1000;          // Wh → kWh
+    var cost = totalTok * md.costPerTok;              // relative $
+    var latency = outTok / md.tps;                    // seconds per response
+
+    // compare against Small to surface the right-sizing lever
+    var smallKWh = totalTok * MODELS[0].whPerTok / 1000;
+    var multiple = kWh / smallKWh;
+
+    t.innerHTML =
+      '<b>'+md.name+' model</b> · '+fmt(reqs)+' requests/day × '+outTok+' tokens = <b>'+fmt(totalTok)+' tokens/day</b><br>'+
+      'Daily energy: <b style="color:'+C.accent+'">'+kWh.toFixed(kWh<10?2:0)+' kWh</b> &nbsp;·&nbsp; '+
+      'Cost (relative): <b style="color:'+C.amber+'">$'+(cost<10?cost.toFixed(2):fmt(cost))+'/day</b> &nbsp;·&nbsp; '+
+      'Per-response latency: <b style="color:'+C.green+'">'+latency.toFixed(1)+'s</b><br>'+
+      (size===0
+        ? '<b style="color:'+C.green+'">Right-sized.</b> For simple "where is my order?" queries, the small model is cheapest, fastest, and greenest.'
+        : '<b style="color:'+C.red+'">'+multiple.toFixed(0)+'× the energy &amp; cost of the small model</b> for the same traffic. Reserve this for the complex tickets that truly need it — right-sizing the model is the single biggest lever.')+
+      '<br><span style="color:'+C.muted+'">Constants are illustrative, not vendor figures — the point is the direction, not the decimals.</span>';
+  }
+  draw();
+})();
+</script>
+
+</body>
+</html>

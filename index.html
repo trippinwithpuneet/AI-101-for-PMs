@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){try{var t=localStorage.getItem("ai101.theme")||"dark";document.documentElement.setAttribute("data-theme",t);}catch(e){document.documentElement.setAttribute("data-theme","dark");}})();</script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI 101 for PMs — how AI actually works</title>
+<meta name="description" content="An open-source, interactive course teaching product managers how AI actually works — enough to spec, evaluate, and ship AI features." />
+<link rel="stylesheet" href="assets/css/main.css" />
+</head>
+<body class="ch1 single">
+<header class="top">
+  <div class="hero">
+  <div class="kicker">AI 101 · Field notes for product managers</div>
+  <h1>How AI actually works</h1>
+  <p>A jargon-to-fluency course built for PMs who want to <em>spec</em>, <em>evaluate</em>, and <em>ship</em> AI — not derive gradients. Every concept: a plain-English explanation, an interactive visual, the PM takeaway, and the line that signals fluency in an interview.</p>
+  <a class="cta" href="chapters/01-ml-foundations.html">Start the course →</a>
+  <div class="pills">
+    <span class="pill">25 interactive concepts</span>
+    <span class="pill">4 chapters</span>
+    <span class="pill">No login · works offline</span>
+    <span class="pill">Open source</span>
+  </div>
+  </div>
+</header>
+
+<div class="wrap single">
+  <main>
+    <div id="progress"></div>
+
+    <section class="intro" id="why">
+      <h2>Why this matters for PMs right now</h2>
+      <p>Two years ago, "AI PM" was a specialisation. Today it's closer to a baseline expectation — the way "can query data in SQL" became table stakes in the 2010s. If your product touches a recommendation, a chatbot, a search box, or anything generating text, you're already making AI product decisions. The only question is whether you make them with a real mental model or by vibes.</p>
+      <p>This isn't about becoming an ML engineer. It closes a specific, common gap: <b>PMs who talk fluently about "AI strategy" in the abstract but go quiet the moment a question gets concrete</b> — why is this feature slow, why did the model get worse after the last update, why does it confidently make things up, why is this multilingual feature costing 3× more than expected. Those are product judgment calls dressed up in technical vocabulary.</p>
+      <div class="how">
+        <div><b>Spec it</b>Write a spec that doesn't quietly assume an LLM can count, calculate, or never make things up.</div>
+        <div><b>Evaluate it</b>Ask the one sharp question that tells you whether a model is ready to ship — not just trust a single accuracy number.</div>
+        <div><b>Defend it</b>Push back credibly when "that'll be expensive" or "it just hallucinated" gets used as an unexamined excuse.</div>
+      </div>
+      <p class="swap-hint">Examples are grocery-delivery flavoured so the concepts attach to something concrete — swap in your own domain when you present.</p>
+    </section>
+
+    <h2 style="margin:34px 0 4px">Course map</h2>
+    <p class="hint" style="margin-top:0">Four chapters, building one connected mental model. Start at the top, or jump to a topic.</p>
+    <div class="map">
+      <a class="ch" href="chapters/01-ml-foundations.html">
+        <div class="cn">Chapter 1</div><h3>ML Foundations</h3>
+        <p>Neural nets, overfitting, gradient descent, loss curves, data splits, distribution shift, early stopping, hyperparameters, the pre-ship review.</p>
+        <div class="meta">9 concepts · 9 widgets</div>
+      </a>
+      <a class="ch" href="chapters/02-how-llms-work.html">
+        <div class="cn">Chapter 2</div><h3>How LLMs Work</h3>
+        <p>Tokenisation, counting letters, context windows, attention, RAG, latency, embeddings, temperature, hallucination, inference, tool calling.</p>
+        <div class="meta">11 concepts · 11 widgets</div>
+      </a>
+      <a class="ch" href="chapters/03-evals-safety-cost.html">
+        <div class="cn">Chapter 3</div><h3>Evals, Safety &amp; Cost</h3>
+        <p>Evals, benchmarks &amp; Goodhart's Law, the eval harness, AI safety &amp; alignment, and the environmental impact of LLMs at scale.</p>
+        <div class="meta">5 concepts · 5 widgets</div>
+      </a>
+      <a class="ch" href="chapters/04-watch-apply.html">
+        <div class="cn">Chapter 4</div><h3>Watch &amp; Apply</h3>
+        <p>Two recommended deep-dive talks, plus a cross-chapter capstone that ties the whole course together with a 10-question self-check.</p>
+        <div class="meta">2 videos · capstone</div>
+      </a>
+    </div>
+
+    <div class="map">
+      <a class="ch" href="revise.html">
+        <div class="cn">Revise</div><h3>Three revise modes</h3>
+        <p>Quick keyword lookup (deeplinkable), flashcards by chapter, or a shuffle-able run through all 25 for interview prep.</p>
+      </a>
+      <a class="ch" href="assess.html">
+        <div class="cn">Assess</div><h3>Final assessment</h3>
+        <p>A mixed cross-chapter quiz with an optional shareable result. The "can I use this for real?" check.</p>
+      </a>
+      <a class="ch" href="about.html">
+        <div class="cn">About</div><h3>Author &amp; contributing</h3>
+        <p>What this is, who it's for, the licence, and how to suggest improvements or new concepts.</p>
+      </a>
+    </div>
+
+    <section class="intro" id="how-to-use">
+      <h2>How to use it</h2>
+      <p>Read each concept top to bottom: the <b>core idea</b> in one sentence, a short plain-English explanation, an <b>interactive visual</b> to play with, then the <b>PM takeaway</b> and the <b>interview line</b> worth memorising. Drag the sliders and click the tabs — the visuals are where the intuition lands. Pass each chapter quiz (80%) to mark progress; it's stored only in your browser.</p>
+      <p class="hint">No accounts, no tracking, nothing to install. Safe to share with anyone — fork it and adapt it for your own team.</p>
+      <div class="btn-row">
+        <a class="btn" href="chapters/01-ml-foundations.html">Start with Chapter 1 →</a>
+        <a class="btn alt" href="about.html">About &amp; contribute</a>
+      </div>
+    </section>
+  </main>
+</div>
+
+<footer>
+  AI 101 for PMs · Open-source (MIT) · Built from a guided learning series as a resource for the PM community.
+</footer>
+
+<script src="assets/js/concepts.js"></script>
+<script src="assets/js/progress.js"></script>
+<script src="assets/js/helpers.js"></script>
+<script> Nav.mount({ here:'home', base:'' }); Progress.renderBar(document.getElementById('progress')); </script>
+</body>
+</html>
