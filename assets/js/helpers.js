@@ -218,7 +218,8 @@ var Nav = {
       ['ch4',   base + 'chapters/04-watch-apply.html',      'Ch 4'],
       ['revise',base + 'revise.html',                'Revise'],
       ['assess',base + 'assess.html',                'Assess'],
-      ['about', base + 'about.html',                 'About']
+      ['about', base + 'about.html',                 'About'],
+      ['community', base + 'community.html',          'Community']
     ];
     var bar = el('nav','sitenav');
     var inner = el('div','inner');

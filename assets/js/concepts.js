@@ -464,24 +464,24 @@ window.CONCEPTS = [
   }
   ,{
     id: 'harness', chapter: 3, order: 3, title: 'Harness',
-    coreIdea: `A harness is the <b>plumbing that runs your evals automatically</b> — feeding cases to the model, collecting outputs, scoring them, and reporting — so evaluation happens on every change instead of whenever someone remembers.`,
+    coreIdea: `In the agent era, a harness is the <b>scaffolding wrapped around a model so it can take actions</b> — the tool definitions, the call → observe loop, the system prompt, context management, and the permission gate. The model proposes; the harness decides what actually runs. <span class="eg-tag">heads up</span> The same word has an older, narrower meaning in evaluation — see the last paragraph.`,
     prose: [
-      `An eval set is the questions; the harness is the exam room, invigilator, and grader that runs the exam on demand. It loads the cases, calls the model (or the whole pipeline — retrieval, tools, prompt, and all), captures outputs, applies the scoring, and produces a comparable report. The point is repeatability and automation: the same test, run the same way, every time anything changes.`,
-      `A good harness evaluates the full system, not just the model in isolation. For a RAG feature that means running real queries through retrieval AND generation, because most failures are retrieval failures the model alone would never reveal. It also versions everything — model, prompt, retrieval config — so when a score moves you can attribute the change instead of guessing.`,
-      `Wired into CI, the harness becomes a regression gate: a prompt tweak that fixes one case but breaks five others gets caught before it ships. <span class="eg-tag">Zepto example</span> A nightly harness run over 1,000 saved support queries can flag the morning after a prompt change that resolution quality dropped 4 points — before customers feel it.`
+      `A raw model only emits text. A harness turns that text into <b>actions</b>: it hands the model a set of tools (search, run a query, call an API, edit a file), runs the model, and when the model asks to use a tool the harness executes it, feeds the result back, and runs the model again. That call → observe → repeat loop, until the task is done, is the heart of every agent. <span class="eg-tag">example</span> Claude Code is a harness: the model writes the plan, but the harness is what actually reads files, runs commands, and asks you before doing something risky.`,
+      `The harness — not the model — holds the controls. It decides <em>which</em> tools exist (a support agent can issue a refund but not delete a customer), enforces <b>permissions</b> (pause and ask a human before an irreversible action), manages the <b>context window</b> (what history and retrieved docs the model sees each turn), and sets the <b>stopping rule</b> (max steps, a budget, a "done" signal). Most agent failures are harness failures — a missing guardrail or a tool that did too much — not the model being "dumb".`,
+      `Second meaning — the <b>eval harness</b>: the test runner that scores your pipeline automatically on every change. It loads your eval cases, runs them through the whole system, applies the scoring, and reports — so a regression gets caught before it ships. This chapter's evaluation section uses "harness" in that narrower sense. <span class="eg-tag">Zepto example</span> A nightly eval-harness run over 1,000 saved support queries flags the morning after a prompt change that resolution quality dropped 4 points — before customers feel it.`
     ],
     widget: 'harness',
-    vizTitle: 'Interactive: the harness pipeline, stage by stage',
-    vizHint: `Step a batch of cases through retrieve → generate → score → report, and toggle a "prompt change" to see the regression gate catch a drop.`,
-    pmTakeaway: `Ask <b>"is our eval wired into a harness that runs on every change, or do we eval by hand when someone remembers?"</b> Manual evals rot; automated ones catch the regression the prompt tweak introduced. The harness is what makes "we measure quality" a process rather than a good intention — and it should test the whole pipeline, not just the model.`,
-    interviewLine: `The eval is the test; the harness is the test runner — without it you measure quality once, feel good, and then ship regressions you never see.`,
+    vizTitle: 'Interactive: the agent loop, step by step',
+    vizHint: `Step a request through the harness — the model proposes a tool, the permission gate checks it, the tool runs, the result comes back, and the loop continues to a final answer. Toggle "deny risky action" to watch the harness stop an unsafe call.`,
+    pmTakeaway: `For anything agentic, the product questions are about the harness, not the model: <b>"which tools can it call, who approves the risky ones, how is context managed, and when does it stop?"</b> A capable model in a sloppy harness ships incidents; an average model in a tight harness ships safely.`,
+    interviewLine: `The model proposes, the harness disposes — tools, the action loop, permissions, and context limits all live in the harness, which is why most agent failures are harness failures, not model failures.`,
     quizQuestions: [{
-      q: `What does a harness add on top of having an eval set?`,
-      options: [`It makes the model more accurate`, `It runs the evals automatically and repeatably on every change, catching regressions`, `It reduces inference cost`, `It writes the quiz questions`],
+      q: `In an agent, what does the harness do that the model itself does not?`,
+      options: [`Generates the text of each response`, `Defines the tools, runs the action loop, and enforces permissions on what actually executes`, `Stores the model's training data`, `Makes the model larger`],
       correctIndex: 1,
-      explanation: `The eval is the questions; the harness automates running and scoring them every change, so regressions get caught before users do.`
+      explanation: `The model only proposes actions as text; the harness defines which tools exist, executes them, feeds results back, and gates risky actions — the model never touches the outside world directly.`
     }],
-    tags: ['harness','evaluation','ci','regression','automation']
+    tags: ['harness','agent','tools','action-loop','permissions','context','eval','automation']
   }
   ,{
     id: 'ai-safety-alignment', chapter: 3, order: 4, title: 'AI safety &amp; alignment',

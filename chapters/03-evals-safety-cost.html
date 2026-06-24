@@ -209,68 +209,85 @@ renderQuiz(document.getElementById('quiz-mount'), chapterQuestions(3),
   draw();
 })();
 
-/* ---------- 3. harness — step a batch through the eval pipeline ---------- */
+/* ---------- 3. harness — step a request through the agent loop ---------- */
 (function(){
   var m = document.getElementById('harness-mount'); if(!m) return;
-  var STAGES = ['retrieve','generate','score','report'];
-  var step = 0;          // 0 = nothing lit; 1..4 = stages lit
-  var promptChange = false;
+  var LABELS = ['User request','Model','Permission','Run tool','Observe','Answer'];
+  var step = 0;          // 0 = nothing lit; 1..6 = stages lit
+  var deny = false;      // deny the risky action at the permission gate
 
-  var d = cv(m, 560, 150);
+  var d = cv(m, 560, 170);
   var row = el('div','ctrl');
   var bNext = el('button','btn','Next step →');
   var bReset = el('button','btn alt','Reset');
   row.appendChild(bNext); row.appendChild(bReset); m.appendChild(row);
 
-  // toggle for prompt change
+  // toggle: deny the risky action at the permission gate
   var trow = el('div','ctrl');
-  var bTog = el('button','btn alt','Introduce prompt change: OFF');
-  bTog.onclick = function(){ promptChange=!promptChange;
-    bTog.textContent='Introduce prompt change: '+(promptChange?'ON':'OFF');
-    bTog.style.background = promptChange ? C.amber : '';
-    bTog.style.color = promptChange ? '#0f0d17' : '';
+  var bTog = el('button','btn alt','Deny risky action: OFF');
+  bTog.onclick = function(){ deny=!deny;
+    bTog.textContent='Deny risky action: '+(deny?'ON':'OFF');
+    bTog.style.background = deny ? C.amber : '';
+    bTog.style.color = deny ? '#0f0d17' : '';
+    if(deny && step>3) step=3;   // re-block if toggled on mid-run
     draw(); };
   trow.appendChild(bTog); m.appendChild(trow);
 
   var t = el('div','readout',''); t.style.marginTop='10px'; m.appendChild(t);
 
-  bNext.onclick = function(){ step = (step>=4) ? 4 : step+1; draw(); };
+  bNext.onclick = function(){
+    if(deny && step>=3){ step=3; draw(); return; }   // blocked at the gate
+    step = (step>=6) ? 6 : step+1; draw();
+  };
   bReset.onclick = function(){ step = 0; draw(); };
 
   function draw(){
     var x=d.x, w=d.w, h=d.h; x.clearRect(0,0,w,h);
-    var n=STAGES.length, gap=14, pad=18;
-    var bw=(w-pad*2-gap*(n-1))/n, bh=64, by=44;
+    var n=LABELS.length, gap=10, pad=14;
+    var bw=(w-pad*2-gap*(n-1))/n, bh=58, by=52;
     for(var i=0;i<n;i++){
       var bx=pad + i*(bw+gap);
       var lit = (i < step);
-      var isReport = (i===3);
+      var isGate = (i===2), isAnswer = (i===5);
       var fill=C.panel, stroke=C.grid, label=C.muted;
       if(lit){
-        if(isReport && promptChange){ fill='rgba(244,114,182,.18)'; stroke=C.red; label=C.red; }
-        else if(isReport){ fill='rgba(52,211,153,.18)'; stroke=C.green; label=C.green; }
+        if(isGate && deny){ fill='rgba(244,114,182,.18)'; stroke=C.red; label=C.red; }
+        else if(isAnswer){ fill='rgba(52,211,153,.18)'; stroke=C.green; label=C.green; }
         else { fill=C.accent+'2b'; stroke=C.accent; label=C.accent; }
       }
       x.fillStyle=fill; x.strokeStyle=stroke; x.lineWidth=lit?2.5:1;
       x.beginPath();
-      if(x.roundRect) x.roundRect(bx,by,bw,bh,10); else x.rect(bx,by,bw,bh);
+      if(x.roundRect) x.roundRect(bx,by,bw,bh,9); else x.rect(bx,by,bw,bh);
       x.fill(); x.stroke();
-      x.fillStyle=lit?label:C.muted; x.font='bold 13px sans-serif'; x.textAlign='center';
-      x.fillText(STAGES[i], bx+bw/2, by+bh/2+1);
-      x.font='11px sans-serif'; x.fillStyle=C.muted;
-      x.fillText((i+1), bx+bw/2, by+bh/2+18);
+      x.fillStyle=lit?label:C.muted; x.font='bold 11px sans-serif'; x.textAlign='center';
+      var words=LABELS[i].split(' ');
+      if(words.length>1){ x.fillText(words[0], bx+bw/2, by+bh/2-4); x.fillText(words.slice(1).join(' '), bx+bw/2, by+bh/2+12); }
+      else { x.fillText(LABELS[i], bx+bw/2, by+bh/2+4); }
       // arrow between boxes
-      if(i<n-1){ x.strokeStyle=(i+1<step)?C.accent:C.grid; x.lineWidth=2;
-        var ax=bx+bw, ay=by+bh/2; x.beginPath(); x.moveTo(ax+2,ay); x.lineTo(ax+gap-2,ay); x.stroke();
-        x.beginPath(); x.moveTo(ax+gap-2,ay); x.lineTo(ax+gap-7,ay-4); x.lineTo(ax+gap-7,ay+4); x.closePath(); x.fillStyle=(i+1<step)?C.accent:C.grid; x.fill(); }
+      if(i<n-1){ var on=(i+1<step); x.strokeStyle=on?C.accent:C.grid; x.lineWidth=2;
+        var ax=bx+bw, ay=by+bh/2; x.beginPath(); x.moveTo(ax+1,ay); x.lineTo(ax+gap-1,ay); x.stroke();
+        x.beginPath(); x.moveTo(ax+gap-1,ay); x.lineTo(ax+gap-5,ay-3); x.lineTo(ax+gap-5,ay+3); x.closePath(); x.fillStyle=on?C.accent:C.grid; x.fill(); }
     }
-    x.textAlign='left'; x.fillStyle=C.muted; x.font='11px sans-serif';
-    x.fillText('a batch of saved eval cases flows left → right', pad, 26);
+    // loop-back arc: observe (index 4) → model (index 1)
+    var mb = pad + 1*(bw+gap), ob = pad + 4*(bw+gap);
+    var sx = ob+bw/2, ex = mb+bw/2, ly = by+bh+20;
+    var loopOn = (step>=5);
+    x.strokeStyle=loopOn?C.accent:C.grid; x.lineWidth=2;
+    x.beginPath(); x.moveTo(sx, by+bh); x.lineTo(sx, ly); x.lineTo(ex, ly); x.lineTo(ex, by+bh); x.stroke();
+    x.beginPath(); x.moveTo(ex, by+bh); x.lineTo(ex-4, by+bh+6); x.lineTo(ex+4, by+bh+6); x.closePath(); x.fillStyle=loopOn?C.accent:C.grid; x.fill();
+    x.textAlign='center'; x.fillStyle=loopOn?C.accent:C.muted; x.font='10px sans-serif';
+    x.fillText('loop until done', (sx+ex)/2, ly+13);
 
-    if(step===0){ t.innerHTML='Press <b>Next step</b> to run a batch of eval cases through the harness — the same test, the same way, every time.'; }
-    else if(step<4){ t.innerHTML='Stage <b>'+step+'/4</b> — <b style="color:'+C.accent+'">'+STAGES[step-1]+'</b> running. The harness drives the <em>whole</em> pipeline, not just the model.'; }
-    else if(promptChange){ t.innerHTML='<b style="color:'+C.red+'">⛔ Regression caught: score 86 → 82.</b> A prompt tweak fixed one case but broke others — the harness blocks the merge <b>before</b> users feel it.'; }
-    else { t.innerHTML='<b style="color:'+C.green+'">✅ Pass: score 86.</b> No regression. Wired into CI, this run gates every change automatically — that’s what makes "we measure quality" a process, not a good intention.'; }
+    x.textAlign='left'; x.fillStyle=C.muted; x.font='11px sans-serif';
+    x.fillText('the model proposes; the harness runs the loop', pad, 24);
+
+    if(step===0){ t.innerHTML='Press <b>Next step</b> to send a request into the harness. The <b>model</b> proposes actions; the <b>harness</b> runs the tools, checks permissions, and feeds results back.'; }
+    else if(step===1){ t.innerHTML='Stage <b>1</b> — the request enters the harness, which builds the prompt (system prompt + context) and calls the <b style="color:'+C.accent+'">model</b>.'; }
+    else if(step===2){ t.innerHTML='Stage <b>2</b> — the model cannot act on its own; it emits a tool call as text, e.g. <code>issue_refund(order=123)</code>. The harness intercepts it.'; }
+    else if(step===3){ if(deny){ t.innerHTML='<b style="color:'+C.red+'">⛔ Blocked at the permission gate.</b> The harness pauses before the irreversible action and asks a human. Switch the toggle OFF to approve — the model never reaches the outside world on its own.'; } else { t.innerHTML='Stage <b>3</b> — <b style="color:'+C.accent+'">permission gate</b>: the harness checks the proposed call against its rules. Low-risk auto-allows; risky asks a human (flip the toggle to see that).'; } }
+    else if(step===4){ t.innerHTML='Stage <b>4</b> — approved, so the harness <b>runs the tool</b> (the model itself still does nothing) and captures the result.'; }
+    else if(step===5){ t.innerHTML='Stage <b>5</b> — the <b>observation</b> goes back into context and the loop returns to the model. This call → observe → repeat cycle is the whole agent.'; }
+    else { t.innerHTML='<b style="color:'+C.green+'">✅ Done.</b> The model decides it has enough and returns the final answer. Tools, the loop, permissions, and context limits all lived in the <b>harness</b> — not the model.'; }
   }
   draw();
 })();

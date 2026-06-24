@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){try{var t=localStorage.getItem("ai101.theme")||"dark";document.documentElement.setAttribute("data-theme",t);}catch(e){document.documentElement.setAttribute("data-theme","dark");}})();</script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Community · AI 101 for PMs</title>
+<meta name="description" content="Suggest topics for the AI 101 for PMs course and upvote what the community wants covered next. No account needed." />
+<link rel="stylesheet" href="assets/css/main.css" />
+</head>
+<body class="ch1 single">
+<header class="top">
+  <div class="hero">
+  <div class="kicker">AI 101 for PMs · Community</div>
+  <h1>Help shape the course</h1>
+  <p>What should this course cover next? Add a topic, then upvote the ones you want most. The most-wanted ideas get built — and marked <b>Shipped</b> so you can see your input turn into lessons. No account, no login.</p>
+  </div>
+</header>
+
+<div class="wrap single">
+  <main>
+
+    <section class="intro" id="suggest">
+      <h2>Suggest a topic</h2>
+      <p class="hint" style="margin-top:0">One idea per submission. Keep it specific — “a chapter on fine-tuning vs RAG” beats “more advanced stuff”.</p>
+      <form id="suggest-form" autocomplete="off">
+        <input class="searchbox" id="s-title" type="text" maxlength="120" placeholder="Your suggestion — e.g. “A walkthrough of evaluating an LLM vendor”" required />
+        <textarea class="searchbox" id="s-detail" rows="3" maxlength="1000" placeholder="Optional: a sentence on why it matters or what it should include"></textarea>
+        <div class="btn-row">
+          <input class="searchbox name-input" id="s-name" type="text" maxlength="60" placeholder="Your name (optional)" />
+          <button class="btn" id="s-submit" type="submit">Submit suggestion</button>
+        </div>
+        <div id="form-msg" class="form-msg"></div>
+      </form>
+    </section>
+
+    <div class="board-toolbar">
+      <div class="tabs" id="sort-tabs">
+        <div class="tab active" data-sort="top">Top</div>
+        <div class="tab" data-sort="new">Newest</div>
+      </div>
+      <div class="tabs" id="filter-tabs">
+        <div class="tab active" data-filter="all">All</div>
+        <div class="tab" data-filter="open">Open</div>
+        <div class="tab" data-filter="shipped">Shipped</div>
+      </div>
+    </div>
+
+    <div id="board" class="board"></div>
+
+    <p class="privacy-note">Voting is anonymous — a random id is stored in your browser so you can’t double-vote, and that’s it. The only thing saved on the server is the suggestion text you choose to post (and a name, if you add one). This is the only page that needs a connection; the rest of the course runs entirely offline.</p>
+
+    <div class="btn-row" style="margin-top:24px">
+      <a class="btn alt" href="index.html">← Home</a>
+      <a class="btn alt" href="chapters/01-ml-foundations.html">Start the course →</a>
+    </div>
+  </main>
+</div>
+
+<footer>AI 101 for PMs · Open-source (MIT). The board is community-run — be kind, keep it on-topic.</footer>
+
+<script src="assets/js/concepts.js"></script>
+<script src="assets/js/progress.js"></script>
+<script src="assets/js/helpers.js"></script>
+<script src="assets/js/community.js"></script>
+<script>
+  Nav.mount({ here:'community', base:'' });
+  Community.mount(document.getElementById('board'));
+</script>
+</body>
+</html>

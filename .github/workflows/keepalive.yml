@@ -1,0 +1,31 @@
+name: Keep Supabase awake
+
+# Free Supabase projects pause after ~7 days of inactivity. This pings a
+# tiny read against the REST API once a day so the community board stays
+# live. Once the board gets regular traffic this is redundant, but it's
+# cheap insurance.
+#
+# Setup: add two repo secrets (Settings → Secrets and variables → Actions):
+#   SUPABASE_URL       e.g. https://abcd1234.supabase.co
+#   SUPABASE_ANON_KEY  the anon / public key
+
+on:
+  schedule:
+    - cron: "17 6 * * *"   # 06:17 UTC daily (deliberately off the :00 rush)
+  workflow_dispatch:        # lets you run it manually from the Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST
+        run: |
+          if [ -z "${{ secrets.SUPABASE_URL }}" ]; then
+            echo "SUPABASE_URL secret not set — skipping."; exit 0
+          fi
+          code=$(curl -sS -o /dev/null -w "%{http_code}" \
+            "${{ secrets.SUPABASE_URL }}/rest/v1/suggestions?select=id&limit=1" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}")
+          echo "HTTP $code"
+          [ "$code" -ge 200 ] && [ "$code" -lt 400 ]
